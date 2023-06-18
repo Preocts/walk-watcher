@@ -5,6 +5,8 @@ import logging
 import re
 import sqlite3
 from contextlib import closing
+from datetime import datetime
+from datetime import timedelta
 
 
 @dataclasses.dataclass(frozen=True)
@@ -14,6 +16,11 @@ class Directory:
     root: str
     last_seen: int
     file_count: int
+
+    def __str__(self) -> str:
+        """Return a string representation of the directory."""
+        lastseen = datetime.fromtimestamp(self.last_seen).strftime("%Y-%m-%d %H:%M:%S")
+        return f"{self.root} ({self.file_count} files, last seen {lastseen})"
 
 
 @dataclasses.dataclass(frozen=True)
@@ -25,6 +32,18 @@ class File:
     first_seen: int
     last_seen: int
     removed: int
+
+    def __str__(self) -> str:
+        """Return a string representation of the file."""
+        lastseen = datetime.fromtimestamp(self.last_seen).strftime("%Y-%m-%d %H:%M:%S")
+        age = timedelta(seconds=self.last_seen - self.first_seen)
+        age_minutes = age.seconds // 60
+
+        return (
+            f"{self.root}/{self.filename}"
+            f" ({age_minutes} minutes old, last seen {lastseen})"
+            f" {'(removed)' if self.removed else '(present)'}"
+        )
 
 
 class StoreDB:
