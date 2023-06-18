@@ -9,8 +9,6 @@ from datetime import datetime
 from datetime import timedelta
 from types import TracebackType
 
-MAX_IS_RUNNING_AGE = 5 * 60  # 5 minutes
-
 
 @dataclasses.dataclass(frozen=True)
 class Directory:

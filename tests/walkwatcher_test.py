@@ -10,16 +10,19 @@ import pytest
 
 from walk_watcher.walkwatcher import Directory
 from walk_watcher.walkwatcher import File
-from walk_watcher.walkwatcher import MAX_IS_RUNNING_AGE
 from walk_watcher.walkwatcher import StoreDB
 
 DIRECTORIES_FILE = Path(__file__).parent / "directories.json"
 FILES_FILE = Path(__file__).parent / "files.json"
+MAX_IS_RUNNING_AGE = 5 * 60  # 5 minutes
 
 
 @pytest.fixture
 def store_db() -> StoreDB:
-    return StoreDB(":memory:")
+    return StoreDB(
+        ":memory:",
+        max_is_running_age=MAX_IS_RUNNING_AGE,
+    )
 
 
 @pytest.fixture
