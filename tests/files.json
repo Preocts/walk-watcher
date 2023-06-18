@@ -1,0 +1,17 @@
+[
+    {
+        "root": "some/path/here",
+        "filename": "foo",
+        "last_seen": 10
+    },
+    {
+        "root": "some/path/here",
+        "filename": "bar",
+        "last_seen": 10
+    },
+    {
+        "root": "some/path/here",
+        "filename": "baz",
+        "last_seen": 10
+    }
+]
