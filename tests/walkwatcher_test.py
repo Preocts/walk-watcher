@@ -2,12 +2,25 @@ from __future__ import annotations
 
 import os
 from datetime import datetime
+from unittest.mock import MagicMock
+from unittest.mock import patch
 
 import pytest
 
-from walk_watcher import walkwatcher
 from walk_watcher.walkwatcher import Directory
 from walk_watcher.walkwatcher import File
+from walk_watcher.walkwatcher import WalkWatcher
+
+
+@pytest.fixture
+def watcher() -> WalkWatcher:
+    config = MagicMock(
+        database_path=":memory:",
+        max_is_running_seconds=1,
+        oldest_directory_row_days=2,
+        oldest_file_row_days=3,
+    )
+    return WalkWatcher(config)
 
 
 def test_model_directory_str() -> None:
@@ -76,15 +89,17 @@ def test_model_file_as_metric_line_raises_on_invalid_metric_name() -> None:
         file.as_metric_line("walk_watcher test")
 
 
-def test_walk_directory_strip_root() -> None:
+def test_walk_directory_strip_root(watcher: WalkWatcher) -> None:
     cwd = os.getcwd()
     root = os.path.join(cwd, "tests/fixture")
     all_directories: list[Directory] = []
     all_files: list[File] = []
 
-    for directory, files in walkwatcher._walk_directory(root, remove_prefix=root):
-        all_directories.append(directory)
-        all_files.extend(files)
+    with patch.object(watcher._config, "root_directory", root):
+        with patch.object(watcher._config, "remove_prefix", cwd):
+            for directory, files in watcher._walk_directory():
+                all_directories.append(directory)
+                all_files.extend(files)
 
     assert len(all_directories) == 3
     assert len(all_files) == 3
@@ -96,15 +111,17 @@ def test_walk_directory_strip_root() -> None:
         assert not file.root.startswith(root)
 
 
-def test_walk_directory_keep_root() -> None:
+def test_walk_directory_keep_root(watcher: WalkWatcher) -> None:
     cwd = os.getcwd()
     root = os.path.join(cwd, "tests/fixture")
     all_directories: list[Directory] = []
     all_files: list[File] = []
 
-    for directory, files in walkwatcher._walk_directory(root):
-        all_directories.append(directory)
-        all_files.extend(files)
+    with patch.object(watcher._config, "root_directory", root):
+        with patch.object(watcher._config, "remove_prefix", ""):
+            for directory, files in watcher._walk_directory():
+                all_directories.append(directory)
+                all_files.extend(files)
 
     assert len(all_directories) == 3
     assert len(all_files) == 3

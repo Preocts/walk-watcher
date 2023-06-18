@@ -5,11 +5,32 @@ import logging
 import os
 import re
 import sqlite3
-from collections.abc import Generator
 from configparser import ConfigParser
 from contextlib import closing
 from datetime import datetime
-from types import TracebackType
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Generator
+    from types import TracebackType
+    from typing import Protocol
+
+    class _WatcherConfig(Protocol):
+        @property
+        def database_path(self) -> str:
+            ...
+
+        @property
+        def max_is_running_seconds(self) -> int:
+            ...
+
+        @property
+        def oldest_directory_row_days(self) -> int:
+            ...
+
+        @property
+        def oldest_file_row_days(self) -> int:
+            ...
 
 
 @dataclasses.dataclass(frozen=True)
@@ -201,7 +222,7 @@ class StoreDB:
         self._save_system_info(database_path)
 
     @classmethod
-    def from_config(cls, config: WatcherConfig) -> StoreDB:
+    def from_config(cls, config: _WatcherConfig) -> StoreDB:
         """Build a StoreDB from the given configuration."""
         return cls(
             config.database_path,
@@ -461,33 +482,38 @@ class StoreDB:
             return [File(*row) for row in cursor.fetchall()]
 
 
-def _walk_directory(
-    root: str,
-    *,
-    remove_prefix: str | None = None,
-) -> Generator[tuple[Directory, list[File]], None, None]:
-    """
-    Walk the given directory and yield each directory and its files.
+class WalkWatcher:
+    """Track file counts and file ages for a given directory."""
 
-    Args:
-        root: The root directory to walk.
+    logger = logging.getLogger(__name__)
 
-    Keyword arguments:
-        remove_prefix: A prefix to remove from the root of the directory. Example:
-            If the root is /home/user and the remove_prefix is /home, then the
-            root of the Directory objects will be /user.
+    def __init__(self, config: WatcherConfig) -> None:
+        """
+        Initialize a new WalkWatcher.
 
-    Yields:
-        A tuple of the directory and its files.
-    """
-    now = int(datetime.now().timestamp())
+        Args:
+            config: The configuration to use for this watcher.
+        """
+        self._config = config
+        self._store = StoreDB.from_config(config)
 
-    for dirpath, _, filenames in os.walk(root):
-        if remove_prefix:
-            dirpath = dirpath.lstrip(remove_prefix)
-            dirpath = dirpath or "/"
+    def _walk_directory(self) -> Generator[tuple[Directory, list[File]], None, None]:
+        """
+        Walk the config defined directory and yield each directory and its files.
 
-        directory = Directory(dirpath, now, len(filenames))
-        files = [File(dirpath, filename, now) for filename in filenames]
+        Yields:
+            A tuple of the directory and its files.
+        """
+        root = self._config.root_directory
+        remove_prefix = self._config.remove_prefix
 
-        yield directory, files
+        for dirpath, _, filenames in os.walk(root):
+            now = int(datetime.now().timestamp())
+            if remove_prefix:
+                dirpath = dirpath.lstrip(remove_prefix)
+                dirpath = dirpath or "/"
+
+            directory = Directory(dirpath, now, len(filenames))
+            files = [File(dirpath, filename, now) for filename in filenames]
+
+            yield directory, files
