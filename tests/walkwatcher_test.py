@@ -4,6 +4,7 @@ import json
 from datetime import datetime
 from pathlib import Path
 from random import shuffle
+from unittest.mock import patch
 
 import pytest
 
@@ -104,6 +105,17 @@ def test_model_file_as_metric_line_raises_on_invalid_metric_name() -> None:
         file.as_metric_line("walk_watcher test")
 
 
+def test_storedb_works_with_context_manager() -> None:
+    with patch("walk_watcher.walkwatcher.StoreDB.start_run") as start_run_mock:
+        with patch("walk_watcher.walkwatcher.StoreDB.stop_run") as stop_run_mock:
+            with StoreDB(":memory:") as store_db:
+                store_db.start_run()
+                store_db.stop_run()
+
+    assert start_run_mock.call_count == 2
+    assert stop_run_mock.call_count == 2
+
+
 def test_create_file_table(store_db: StoreDB) -> None:
     cursor = store_db._connection.cursor()
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
@@ -178,7 +190,7 @@ def test_end_run_updates_system_table(store_db: StoreDB) -> None:
     cursor = store_db._connection.cursor()
     cursor.execute("UPDATE system SET is_running = 1")
 
-    store_db.end_run()
+    store_db.stop_run()
     cursor.execute("SELECT is_running FROM system")
     rows = cursor.fetchone()
 

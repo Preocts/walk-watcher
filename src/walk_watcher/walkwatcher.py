@@ -7,13 +7,14 @@ import sqlite3
 from contextlib import closing
 from datetime import datetime
 from datetime import timedelta
+from types import TracebackType
 
 MAX_IS_RUNNING_AGE = 5 * 60  # 5 minutes
 
 
 @dataclasses.dataclass(frozen=True)
 class Directory:
-    """A directory."""
+    """A directory row in the database."""
 
     root: str
     last_seen: int
@@ -50,7 +51,7 @@ class Directory:
 
 @dataclasses.dataclass(frozen=True)
 class File:
-    """A file."""
+    """A file row in the database."""
 
     root: str
     filename: str
@@ -85,15 +86,66 @@ class StoreDB:
 
     logger = logging.getLogger("walk_watcher.StoreDB")
 
-    def __init__(self, database_path: str) -> None:
-        """Initialize a new StoreDB connected to the given path."""
+    def __init__(
+        self,
+        database_path: str = ":memory:",
+        *,
+        max_is_running_age: int = 300,
+        oldest_directory_row_age: int = 30,
+        oldest_file_row_age: int = 30,
+    ) -> None:
+        """
+        Initialize a new StoreDB connected to the given path.
+
+        It is recommended to use the `with` statement to ensure the database
+        connection is closed properly and that start_run(), stop_run(), and
+        cleanup() are called at the appropriate times. For example:
+
+            with StoreDB() as db:
+                ...
+
+        Args:
+            database_path: The path to the database file. Defaults to an
+                in-memory database.
+
+        Keyword Args:
+            max_is_running_age: The maximum age of the is_running flag in
+                seconds. If the is_running flag is older than this, it will be
+                reset to 0. Defaults to 300 (5 minutes).
+            oldest_directory_row_age: The maximum age of a directory row in
+                days. If a directory row is older than this, it will be
+                removed on cleanup. Defaults to 30.
+            oldest_file_row_age: The maximum age of a file row in days. If a
+                file row is older than this, it will be removed on cleanup.
+                Defaults to 30.
+
+        """
         self.logger.debug("Initializing StoreDB at %s", database_path)
         self._connection = sqlite3.connect(database_path)
+
+        self._max_is_running_age = max_is_running_age
+        self._oldest_directory_row_age = oldest_directory_row_age
+        self._oldest_file_row_age = oldest_file_row_age
+
         self._create_file_table()
         self._create_directory_table()
         self._create_system_table()
 
         self._save_system_info(database_path)
+
+    def __enter__(self) -> StoreDB:
+        """Enter a context manager."""
+        self.start_run()
+        return self
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
+        """Exit a context manager."""
+        self.stop_run()
 
     def _create_file_table(self) -> None:
         """Create the file table if it does not already exist."""
@@ -176,7 +228,7 @@ class StoreDB:
         # Ignore is_running if last_run is more than MAX_IS_RUNNING_AGE minutes ago
         last_run, is_running = self._get_last_run()
 
-        if last_run < int(datetime.now().timestamp()) - MAX_IS_RUNNING_AGE:
+        if last_run < int(datetime.now().timestamp()) - self._max_is_running_age:
             is_running = False
 
         if is_running:
@@ -189,7 +241,7 @@ class StoreDB:
             )
             self._connection.commit()
 
-    def end_run(self) -> None:
+    def stop_run(self) -> None:
         """Set the is_running flag to False."""
         with closing(self._connection.cursor()) as cursor:
             cursor.execute("UPDATE system SET is_running = 0")
