@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import os
 from datetime import datetime
 
 import pytest
 
+from walk_watcher import walkwatcher
 from walk_watcher.walkwatcher import Directory
 from walk_watcher.walkwatcher import File
 
@@ -72,3 +74,37 @@ def test_model_file_as_metric_line_raises_on_invalid_metric_name() -> None:
     file = File("/foo/bar", "baz.txt", 1234567890, 1234568190, 0, 0)
     with pytest.raises(ValueError):
         file.as_metric_line("walk_watcher test")
+
+
+def test_walk_directory_strip_root() -> None:
+    cwd = os.getcwd()
+    root = os.path.join(cwd, "tests/fixture")
+
+    directories, files = walkwatcher.walk_directory(root, remove_prefix=root)
+    print(directories)
+    print(files)
+
+    assert len(directories) == 3
+    assert len(files) == 3
+
+    for directory in directories:
+        assert not directory.root.startswith(root)
+
+    for file in files:
+        assert not file.root.startswith(root)
+
+
+def test_walk_directory_keep_root() -> None:
+    cwd = os.getcwd()
+    root = os.path.join(cwd, "tests/fixture")
+
+    directories, files = walkwatcher.walk_directory(root)
+
+    assert len(directories) == 3
+    assert len(files) == 3
+
+    for directory in directories:
+        assert directory.root.startswith(root)
+
+    for file in files:
+        assert file.root.startswith(root)

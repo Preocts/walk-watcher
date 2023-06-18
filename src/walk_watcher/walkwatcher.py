@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import dataclasses
 import logging
+import os
 import re
 import sqlite3
 from contextlib import closing
@@ -376,3 +377,37 @@ class StoreDB:
             )
             # Watch the order of the columns here
             return [File(*row) for row in cursor.fetchall()]
+
+
+def walk_directory(
+    root: str,
+    *,
+    remove_prefix: str | None = None,
+) -> tuple[list[Directory], list[File]]:
+    """
+    Walk the given directory and return a list of Directory and File objects.
+
+    Args:
+        root: The root directory to walk.
+
+    Keyword arguments:
+        remove_prefix: A prefix to remove from the root of the directory. Example:
+            If the root is /home/user and the remove_prefix is /home, then the
+            root of the Directory objects will be /user.
+
+    Returns:
+        A tuple of Directory and File objects.
+    """
+    directories: list[Directory] = []
+    files: list[File] = []
+    now = int(datetime.now().timestamp())
+
+    for dirpath, _, filenames in os.walk(root):
+        if remove_prefix:
+            dirpath = dirpath.lstrip(remove_prefix)
+            dirpath = dirpath or "/"
+
+        directories.append(Directory(dirpath, now, len(filenames)))
+        files.extend(File(dirpath, filename, now) for filename in filenames)
+
+    return directories, files
