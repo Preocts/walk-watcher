@@ -371,6 +371,7 @@ class StoreDB:
                 SELECT root, filename, first_seen, last_seen, age_seconds
                 FROM ptn_files
                 WHERE rn = 1
+                ORDER BY age_seconds DESC
                 """
             )
             # Watch the order of the columns here
