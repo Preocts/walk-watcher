@@ -200,6 +200,16 @@ class StoreDB:
 
         self._save_system_info(database_path)
 
+    @classmethod
+    def from_config(cls, config: WatcherConfig) -> StoreDB:
+        """Build a StoreDB from the given configuration."""
+        return cls(
+            config.database_path,
+            max_is_running_age=config.max_is_running_seconds,
+            oldest_directory_row_age=config.oldest_directory_row_days,
+            oldest_file_row_age=config.oldest_file_row_days,
+        )
+
     def __enter__(self) -> StoreDB:
         """Enter a context manager."""
         self.start_run()
