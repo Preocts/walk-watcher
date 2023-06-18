@@ -80,22 +80,22 @@ def test_sanitize_directory_path(path: str, expected: str) -> None:
 
 
 def test_model_file_str() -> None:
-    file_present = File("/foo/bar", "baz.txt", 1234567890, 1234568190, 0)
-    file_removed = File("/foo/bar", "baz.txt", 1234567890, 1234568190, 1)
+    file_present = File("/foo/bar", "baz.txt", 1234568190, 1234567890, 300, 0)
+    file_removed = File("/foo/bar", "baz.txt", 1234568190, 1234567890, 300, 1)
 
     assert (
         str(file_present)
-        == "/foo/bar/baz.txt (5 minutes old, last seen 2009-02-13 18:36:30) (present)"
+        == "/foo/bar/baz.txt (300 seconds old, last seen 2009-02-13 18:36:30) (present)"
     )
     assert (
         str(file_removed)
-        == "/foo/bar/baz.txt (5 minutes old, last seen 2009-02-13 18:36:30) (removed)"
+        == "/foo/bar/baz.txt (300 seconds old, last seen 2009-02-13 18:36:30) (removed)"
     )
 
 
 def test_model_file_as_metric_line() -> None:
-    file = File("/foo/bar", "baz.txt", 1234567890, 1234568190, 0)
-    expected = "walk_watcher_test,directory.oldest.file.minutes=/foo/bar 5"
+    file = File("/foo/bar", "baz.txt", 1234567890, 1234568190, 300, 0)
+    expected = "walk_watcher_test,oldest.file.seconds=/foo/bar 300"
 
     result = file.as_metric_line("walk_watcher_test")
 
@@ -103,7 +103,7 @@ def test_model_file_as_metric_line() -> None:
 
 
 def test_model_file_as_metric_line_raises_on_invalid_metric_name() -> None:
-    file = File("/foo/bar", "baz.txt", 1234567890, 1234568190, 0)
+    file = File("/foo/bar", "baz.txt", 1234567890, 1234568190, 0, 0)
     with pytest.raises(ValueError):
         file.as_metric_line("walk_watcher test")
 
@@ -236,6 +236,7 @@ def test_save_files_empty_rows(
             file.filename,
             file.last_seen,
             file.last_seen,
+            file.age_seconds,
             0,
         )
         for row, file in zip(rows, files)
@@ -248,14 +249,13 @@ def test_save_file_existing_row_updated(
 ) -> None:
     store_db.save_files(files)
 
-    # Replace last file with a new one with the same root and filename
-    expected_first_seen = files[-1].last_seen
+    # Replace last with new: the same root and filename but 300 seconds older.
+    expected_first_seen = files[-1].first_seen
+    new_age = 600
     files[-1] = File(
         root=files[-1].root,
         filename=files[-1].filename,
-        first_seen=expected_first_seen,
-        last_seen=1234567890,
-        removed=0,
+        last_seen=files[-1].first_seen + new_age,
     )
 
     store_db.save_files(files)
@@ -263,12 +263,14 @@ def test_save_file_existing_row_updated(
     cursor = store_db._connection.cursor()
     cursor.execute("SELECT * FROM files")
     last_row = cursor.fetchall()[-1]
+    print(last_row)
 
     assert last_row[1:] == (
         files[-1].root,
         files[-1].filename,
         expected_first_seen,
         files[-1].last_seen,
+        new_age,
         0,
     )
 
@@ -285,6 +287,7 @@ def test_save_file_add_new_row_with_existing_rows(
         filename="new_file",
         first_seen=1234567890,
         last_seen=1234567890,
+        age_seconds=0,
         removed=0,
     )
     files.append(new_file)
@@ -298,9 +301,10 @@ def test_save_file_add_new_row_with_existing_rows(
     assert last_row[1:] == (
         new_file.root,
         new_file.filename,
+        new_file.first_seen,
         new_file.last_seen,
-        new_file.last_seen,
-        0,
+        new_file.age_seconds,
+        new_file.removed,
     )
 
 
@@ -341,6 +345,7 @@ def test_get_file_rows(store_db: StoreDB) -> None:
             filename="file1",
             first_seen=1234567891,
             last_seen=1234567891,
+            age_seconds=0,
             removed=0,
         ),
         File(
@@ -348,6 +353,7 @@ def test_get_file_rows(store_db: StoreDB) -> None:
             filename="file1",
             first_seen=1234567891,
             last_seen=1234567891,
+            age_seconds=0,
             removed=1,
         ),
         File(
@@ -355,6 +361,7 @@ def test_get_file_rows(store_db: StoreDB) -> None:
             filename="file2",
             first_seen=1234567890,
             last_seen=1234567891,
+            age_seconds=0,
             removed=0,
         ),
     ]

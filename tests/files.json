@@ -4,6 +4,7 @@
         "filename": "foo",
         "first_seen": 10,
         "last_seen": 10,
+        "age_seconds": 0,
         "removed": 0
     },
     {
@@ -11,6 +12,7 @@
         "filename": "bar",
         "first_seen": 10,
         "last_seen": 10,
+        "age_seconds": 0,
         "removed": 0
     },
     {
@@ -18,6 +20,7 @@
         "filename": "baz",
         "first_seen": 10,
         "last_seen": 10,
+        "age_seconds": 0,
         "removed": 0
     }
 ]

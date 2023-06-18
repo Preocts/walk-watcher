@@ -6,7 +6,6 @@ import re
 import sqlite3
 from contextlib import closing
 from datetime import datetime
-from datetime import timedelta
 from types import TracebackType
 
 
@@ -53,19 +52,18 @@ class File:
 
     root: str
     filename: str
-    first_seen: int
     last_seen: int
-    removed: int
+    first_seen: int = 0
+    age_seconds: int = 0
+    removed: int = 0
 
     def __str__(self) -> str:
         """Return a string representation of the file."""
         lastseen = datetime.fromtimestamp(self.last_seen).strftime("%Y-%m-%d %H:%M:%S")
-        age = timedelta(seconds=self.last_seen - self.first_seen)
-        age_minutes = age.seconds // 60
 
         return (
             f"{self.root}/{self.filename}"
-            f" ({age_minutes} minutes old, last seen {lastseen})"
+            f" ({self.age_seconds} seconds old, last seen {lastseen})"
             f" {'(removed)' if self.removed else '(present)'}"
         )
 
@@ -73,10 +71,8 @@ class File:
         """Return a string representation of the file in metric format."""
         if re.search(r"\s", metric_name):
             raise ValueError("Metric name cannot contain whitespace")
-        age = timedelta(seconds=self.last_seen - self.first_seen)
-        age_minutes = age.seconds // 60
 
-        return f"{metric_name},directory.oldest.file.minutes={self.root} {age_minutes}"
+        return f"{metric_name},oldest.file.seconds={self.root} {self.age_seconds}"
 
 
 class StoreDB:
@@ -158,6 +154,7 @@ class StoreDB:
                 filename TEXT NOT NULL,
                 first_seen INTEGER NOT NULL,
                 last_seen INTEGER NOT NULL,
+                age_seconds INTEGER NOT NULL,
                 removed INTEGER NOT NULL,
                 UNIQUE(root, filename)
             )
@@ -281,19 +278,23 @@ class StoreDB:
 
     def _insert_files(self, cursor: sqlite3.Cursor, files: list[File]) -> None:
         """Insert the given files into the database."""
+        # We can make some assumptions here because we have already marked all
+        # files as removed. We can assume that any file that is not in the
+        # database is new and can be inserted with first/last seen as the
+        # being equal, and age_seconds as 0, and the removed flag as 0.
         self.logger.debug("Inserting %s files", len(files))
         cursor.executemany(
             """
-            INSERT OR IGNORE INTO files (root, filename, first_seen, last_seen, removed)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT OR IGNORE INTO files (root, filename, first_seen,
+                last_seen, age_seconds, removed)
+            VALUES (?, ?, ?, ?, 0, 0)
             """,
             [
                 (
                     file.root,
                     file.filename,
-                    file.first_seen,
                     file.last_seen,
-                    file.removed,
+                    file.last_seen,
                 )
                 for file in files
             ],
@@ -305,10 +306,13 @@ class StoreDB:
         cursor.executemany(
             """
             UPDATE files
-            SET last_seen = ?, removed = 0
+            SET last_seen = ?, removed = 0, age_seconds = ? - first_seen
             WHERE root = ? AND filename = ?
             """,
-            [(file.last_seen, file.root, file.filename) for file in files],
+            [
+                (file.last_seen, file.last_seen, file.root, file.filename)
+                for file in files
+            ],
         )
 
     def get_directory_rows(self) -> list[Directory]:
@@ -340,13 +344,10 @@ class StoreDB:
         with closing(self._connection.cursor()) as cursor:
             cursor.execute(
                 """
-                SELECT root, filename, first_seen, last_seen, removed
+                SELECT root, filename, first_seen, last_seen, age_seconds, removed
                 FROM files
                 WHERE root = ? AND removed = 0
                 """,
                 (directory.root,),
             )
-            return [
-                File(root, filename, first_seen, last_seen, removed)
-                for root, filename, first_seen, last_seen, removed in cursor.fetchall()
-            ]
+            return [File(*row) for row in cursor.fetchall()]
