@@ -37,6 +37,11 @@ def files() -> list[File]:
     return files
 
 
+def test_model_directory_str() -> None:
+    directory = Directory("/foo/bar", 1234567890, 42)
+    assert str(directory) == "/foo/bar (42 files, last seen 2009-02-13 18:31:30)"
+
+
 @pytest.mark.parametrize(
     "path, expected",
     [
@@ -50,12 +55,7 @@ def files() -> list[File]:
     ],
 )
 def test_sanitize_directory_path(path: str, expected: str) -> None:
-    assert walkwatcher._sanitize_directory_path(path) == expected
-
-
-def test_model_directory_str() -> None:
-    directory = Directory("/foo/bar", 1234567890, 42)
-    assert str(directory) == "/foo/bar (42 files, last seen 2009-02-13 18:31:30)"
+    assert Directory._sanitize_directory_path(path) == expected
 
 
 def test_model_file_str() -> None:

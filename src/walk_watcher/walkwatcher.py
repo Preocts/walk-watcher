@@ -22,6 +22,22 @@ class Directory:
         lastseen = datetime.fromtimestamp(self.last_seen).strftime("%Y-%m-%d %H:%M:%S")
         return f"{self.root} ({self.file_count} files, last seen {lastseen})"
 
+    @staticmethod
+    def _sanitize_directory_path(path: str) -> str:
+        """
+        Sanitize a directory path, removing all non-alphanumeric characters and
+        replacing `/` and `\\` with `.`.
+
+        Args:
+            path: The directory path to sanitize.
+
+        Returns:
+            The sanitized directory path.
+        """
+        path = re.sub(r"[\/\\]", ".", path)
+        path = re.sub(r"\s+", "_", path)
+        return re.sub(r"[^a-zA-Z0-9._]", "", path.lower())
+
 
 @dataclasses.dataclass(frozen=True)
 class File:
@@ -183,19 +199,3 @@ class StoreDB:
                 Directory(root, last_seen, file_count)
                 for root, last_seen, file_count in cursor.fetchall()
             ]
-
-
-def _sanitize_directory_path(path: str) -> str:
-    """
-    Sanitize a directory path, removing all non-alphanumeric characters and
-    replacing `/` and `\\` with `.`.
-
-    Args:
-        path: The directory path to sanitize.
-
-    Returns:
-        The sanitized directory path.
-    """
-    path = re.sub(r"[\/\\]", ".", path)
-    path = re.sub(r"\s+", "_", path)
-    return re.sub(r"[^a-zA-Z0-9._]", "", path.lower())
