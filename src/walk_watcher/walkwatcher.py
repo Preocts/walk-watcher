@@ -8,6 +8,8 @@ from contextlib import closing
 from datetime import datetime
 from datetime import timedelta
 
+MAX_IS_RUNNING_AGE = 5 * 60  # 5 minutes
+
 
 @dataclasses.dataclass(frozen=True)
 class Directory:
@@ -83,12 +85,15 @@ class StoreDB:
 
     logger = logging.getLogger("walk_watcher.StoreDB")
 
-    def __init__(self, path: str) -> None:
+    def __init__(self, database_path: str) -> None:
         """Initialize a new StoreDB connected to the given path."""
-        self.logger.debug("Initializing StoreDB at %s", path)
-        self._connection = sqlite3.connect(path)
+        self.logger.debug("Initializing StoreDB at %s", database_path)
+        self._connection = sqlite3.connect(database_path)
         self._create_file_table()
         self._create_directory_table()
+        self._create_system_table()
+
+        self._save_system_info(database_path)
 
     def _create_file_table(self) -> None:
         """Create the file table if it does not already exist."""
@@ -126,6 +131,69 @@ class StoreDB:
             """
         )
         self.logger.debug("Created directory table")
+
+    def _create_system_table(self) -> None:
+        """Create a table to store system information."""
+        self._connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS system (
+                database_path TEXT NOT NULL,
+                last_run INTEGER NOT NULL,
+                is_running INTEGER NOT NULL,
+                created_at INTEGER NOT NULL,
+                UNIQUE(database_path)
+            )
+            """
+        )
+        self.logger.debug("Created system table")
+
+    def _save_system_info(self, database_path: str) -> None:
+        """Save system information to the database. (only at startup)"""
+        self._connection.execute(
+            """
+            INSERT OR REPLACE INTO system
+            ( database_path, last_run, is_running, created_at )
+            VALUES (?, ?, ?, ?)
+            """,
+            (
+                database_path,
+                int(datetime.now().timestamp()),
+                0,
+                int(datetime.now().timestamp()),
+            ),
+        )
+        self._connection.commit()
+        self.logger.debug("Saved system information")
+
+    def _get_last_run(self) -> tuple[int, int]:
+        """Return the last run timestamp and is_running flag."""
+        with closing(self._connection.cursor()) as cursor:
+            cursor.execute("SELECT last_run, is_running FROM system")
+            return cursor.fetchone()
+
+    def start_run(self) -> None:
+        """Set the is_running flag to True, raise error if already running."""
+        # Ignore is_running if last_run is more than MAX_IS_RUNNING_AGE minutes ago
+        last_run, is_running = self._get_last_run()
+
+        if last_run < int(datetime.now().timestamp()) - MAX_IS_RUNNING_AGE:
+            is_running = False
+
+        if is_running:
+            raise RuntimeError(f"Already running (last run {last_run})")
+
+        with closing(self._connection.cursor()) as cursor:
+            cursor.execute(
+                "UPDATE system SET is_running = 1, last_run = ?",
+                (int(datetime.now().timestamp()),),
+            )
+            self._connection.commit()
+
+    def end_run(self) -> None:
+        """Set the is_running flag to False."""
+        with closing(self._connection.cursor()) as cursor:
+            cursor.execute("UPDATE system SET is_running = 0")
+            self._connection.commit()
 
     def save_directories(self, directories: list[Directory]) -> None:
         """Save the given directories to the database."""

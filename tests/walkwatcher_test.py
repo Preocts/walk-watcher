@@ -1,22 +1,24 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime
 from pathlib import Path
 from random import shuffle
 
 import pytest
 
-from walk_watcher import walkwatcher
 from walk_watcher.walkwatcher import Directory
 from walk_watcher.walkwatcher import File
+from walk_watcher.walkwatcher import MAX_IS_RUNNING_AGE
+from walk_watcher.walkwatcher import StoreDB
 
 DIRECTORIES_FILE = Path(__file__).parent / "directories.json"
 FILES_FILE = Path(__file__).parent / "files.json"
 
 
 @pytest.fixture
-def store_db() -> walkwatcher.StoreDB:
-    return walkwatcher.StoreDB(":memory:")
+def store_db() -> StoreDB:
+    return StoreDB(":memory:")
 
 
 @pytest.fixture
@@ -102,8 +104,7 @@ def test_model_file_as_metric_line_raises_on_invalid_metric_name() -> None:
         file.as_metric_line("walk_watcher test")
 
 
-def test_create_file_table(store_db: walkwatcher.StoreDB) -> None:
-    store_db._create_file_table()
+def test_create_file_table(store_db: StoreDB) -> None:
     cursor = store_db._connection.cursor()
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
     tables = [name[0] for name in cursor.fetchall()]
@@ -111,8 +112,7 @@ def test_create_file_table(store_db: walkwatcher.StoreDB) -> None:
     assert "files" in tables
 
 
-def test_create_directory_table(store_db: walkwatcher.StoreDB) -> None:
-    store_db._create_directory_table()
+def test_create_directory_table(store_db: StoreDB) -> None:
     cursor = store_db._connection.cursor()
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
     tables = [name[0] for name in cursor.fetchall()]
@@ -120,8 +120,73 @@ def test_create_directory_table(store_db: walkwatcher.StoreDB) -> None:
     assert "directories" in tables
 
 
+def test_create_system_table(store_db: StoreDB) -> None:
+    cursor = store_db._connection.cursor()
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+    tables = [name[0] for name in cursor.fetchall()]
+
+    assert "system" in tables
+
+
+def test_system_table_is_saved_on_init(store_db: StoreDB) -> None:
+    cursor = store_db._connection.cursor()
+    cursor.execute("SELECT * FROM system")
+    rows = cursor.fetchall()
+
+    assert len(rows) == 1
+    assert rows[0][0] == ":memory:"  # database path is correct
+    assert rows[0][2] == 0  # is_running is False
+    # We don't check the last_seen timestamp for simplicity.
+
+
+def test_start_run_updates_system_table(store_db: StoreDB) -> None:
+    store_db.start_run()
+    cursor = store_db._connection.cursor()
+    cursor.execute("SELECT is_running FROM system")
+    rows = cursor.fetchone()
+
+    assert rows[0] == 1  # is_running is True
+
+
+def test_start_run_with_stale_is_running_flag_updates_system_table(
+    store_db: StoreDB,
+) -> None:
+    store_db.start_run()
+    cursor = store_db._connection.cursor()
+    new_timestamp = datetime.now().timestamp() - MAX_IS_RUNNING_AGE - 1
+    cursor.execute(
+        "UPDATE system SET last_run = ?",
+        (new_timestamp,),
+    )
+
+    store_db.start_run()
+
+    cursor.execute("SELECT last_run FROM system")
+    rows = cursor.fetchone()
+
+    assert rows[0] != new_timestamp  # last_seen was updated
+
+
+def test_start_run_while_running_raises(store_db: StoreDB) -> None:
+    store_db.start_run()
+
+    with pytest.raises(RuntimeError):
+        store_db.start_run()
+
+
+def test_end_run_updates_system_table(store_db: StoreDB) -> None:
+    cursor = store_db._connection.cursor()
+    cursor.execute("UPDATE system SET is_running = 1")
+
+    store_db.end_run()
+    cursor.execute("SELECT is_running FROM system")
+    rows = cursor.fetchone()
+
+    assert rows[0] == 0  # is_running is False
+
+
 def test_save_directories(
-    store_db: walkwatcher.StoreDB,
+    store_db: StoreDB,
     directories: list[Directory],
 ) -> None:
     # We save the directories twice to ensure that the
@@ -140,7 +205,7 @@ def test_save_directories(
 
 
 def test_save_files_empty_rows(
-    store_db: walkwatcher.StoreDB,
+    store_db: StoreDB,
     files: list[File],
 ) -> None:
     store_db.save_files(files)
@@ -163,7 +228,7 @@ def test_save_files_empty_rows(
 
 
 def test_save_file_existing_row_updated(
-    store_db: walkwatcher.StoreDB,
+    store_db: StoreDB,
     files: list[File],
 ) -> None:
     store_db.save_files(files)
@@ -194,7 +259,7 @@ def test_save_file_existing_row_updated(
 
 
 def test_save_file_add_new_row_with_existing_rows(
-    store_db: walkwatcher.StoreDB,
+    store_db: StoreDB,
     files: list[File],
 ) -> None:
     store_db.save_files(files)
@@ -225,7 +290,7 @@ def test_save_file_add_new_row_with_existing_rows(
 
 
 def test_save_files_marks_all_removed(
-    store_db: walkwatcher.StoreDB,
+    store_db: StoreDB,
     files: list[File],
 ) -> None:
     store_db.save_files(files)
@@ -240,7 +305,7 @@ def test_save_files_marks_all_removed(
     assert all(removed)
 
 
-def test_get_directory_rows(store_db: walkwatcher.StoreDB) -> None:
+def test_get_directory_rows(store_db: StoreDB) -> None:
     directories = [
         Directory(root="root1", last_seen=1234567891, file_count=0),
         Directory(root="root1", last_seen=1234567890, file_count=0),
