@@ -155,7 +155,7 @@ class WatcherConfig:
         return self._config.get("watcher", "remove_prefix", fallback=None)
 
     @property
-    def exlude_directory_pattern(self) -> str | None:
+    def exclude_directory_pattern(self) -> str | None:
         """Return the pattern to exclude directories from the walk."""
         config_line = self._config.get("watcher", "exclude_directories", fallback="")
         lines = [line.strip() for line in config_line.splitlines() if line.strip()]
