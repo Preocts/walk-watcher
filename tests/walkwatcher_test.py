@@ -79,15 +79,17 @@ def test_model_file_as_metric_line_raises_on_invalid_metric_name() -> None:
 def test_walk_directory_strip_root() -> None:
     cwd = os.getcwd()
     root = os.path.join(cwd, "tests/fixture")
+    all_directories: list[Directory] = []
+    all_files: list[File] = []
 
-    directories, files = walkwatcher.walk_directory(root, remove_prefix=root)
-    print(directories)
-    print(files)
+    for directory, files in walkwatcher._walk_directory(root, remove_prefix=root):
+        all_directories.append(directory)
+        all_files.extend(files)
 
-    assert len(directories) == 3
-    assert len(files) == 3
+    assert len(all_directories) == 3
+    assert len(all_files) == 3
 
-    for directory in directories:
+    for directory in all_directories:
         assert not directory.root.startswith(root)
 
     for file in files:
@@ -97,13 +99,17 @@ def test_walk_directory_strip_root() -> None:
 def test_walk_directory_keep_root() -> None:
     cwd = os.getcwd()
     root = os.path.join(cwd, "tests/fixture")
+    all_directories: list[Directory] = []
+    all_files: list[File] = []
 
-    directories, files = walkwatcher.walk_directory(root)
+    for directory, files in walkwatcher._walk_directory(root):
+        all_directories.append(directory)
+        all_files.extend(files)
 
-    assert len(directories) == 3
-    assert len(files) == 3
+    assert len(all_directories) == 3
+    assert len(all_files) == 3
 
-    for directory in directories:
+    for directory in all_directories:
         assert directory.root.startswith(root)
 
     for file in files:

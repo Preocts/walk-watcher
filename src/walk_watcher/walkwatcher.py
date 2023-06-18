@@ -5,6 +5,7 @@ import logging
 import os
 import re
 import sqlite3
+from collections.abc import Generator
 from contextlib import closing
 from datetime import datetime
 from types import TracebackType
@@ -379,13 +380,13 @@ class StoreDB:
             return [File(*row) for row in cursor.fetchall()]
 
 
-def walk_directory(
+def _walk_directory(
     root: str,
     *,
     remove_prefix: str | None = None,
-) -> tuple[list[Directory], list[File]]:
+) -> Generator[tuple[Directory, list[File]], None, None]:
     """
-    Walk the given directory and return a list of Directory and File objects.
+    Walk the given directory and yield each directory and its files.
 
     Args:
         root: The root directory to walk.
@@ -395,11 +396,9 @@ def walk_directory(
             If the root is /home/user and the remove_prefix is /home, then the
             root of the Directory objects will be /user.
 
-    Returns:
-        A tuple of Directory and File objects.
+    Yields:
+        A tuple of the directory and its files.
     """
-    directories: list[Directory] = []
-    files: list[File] = []
     now = int(datetime.now().timestamp())
 
     for dirpath, _, filenames in os.walk(root):
@@ -407,7 +406,7 @@ def walk_directory(
             dirpath = dirpath.lstrip(remove_prefix)
             dirpath = dirpath or "/"
 
-        directories.append(Directory(dirpath, now, len(filenames)))
-        files.extend(File(dirpath, filename, now) for filename in filenames)
+        directory = Directory(dirpath, now, len(filenames))
+        files = [File(dirpath, filename, now) for filename in filenames]
 
-    return directories, files
+        yield directory, files
