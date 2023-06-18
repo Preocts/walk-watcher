@@ -22,6 +22,13 @@ class Directory:
         lastseen = datetime.fromtimestamp(self.last_seen).strftime("%Y-%m-%d %H:%M:%S")
         return f"{self.root} ({self.file_count} files, last seen {lastseen})"
 
+    def as_metric_line(self, metric_name: str) -> str:
+        """Return a string representation of the directory in metric format."""
+        if re.search(r"\s", metric_name):
+            raise ValueError("Metric name cannot contain whitespace")
+
+        return f"{metric_name},directory.file.count={self.root} {self.file_count}"
+
     @staticmethod
     def _sanitize_directory_path(path: str) -> str:
         """
@@ -60,6 +67,15 @@ class File:
             f" ({age_minutes} minutes old, last seen {lastseen})"
             f" {'(removed)' if self.removed else '(present)'}"
         )
+
+    def as_metric_line(self, metric_name: str) -> str:
+        """Return a string representation of the file in metric format."""
+        if re.search(r"\s", metric_name):
+            raise ValueError("Metric name cannot contain whitespace")
+        age = timedelta(seconds=self.last_seen - self.first_seen)
+        age_minutes = age.seconds // 60
+
+        return f"{metric_name},directory.oldest.file.minutes={self.root} {age_minutes}"
 
 
 class StoreDB:

@@ -42,6 +42,21 @@ def test_model_directory_str() -> None:
     assert str(directory) == "/foo/bar (42 files, last seen 2009-02-13 18:31:30)"
 
 
+def test_model_directory_as_metric_line() -> None:
+    directory = Directory("/foo/bar", 1234567890, 42)
+    expected = "walk_watcher_test,directory.file.count=/foo/bar 42"
+
+    result = directory.as_metric_line("walk_watcher_test")
+
+    assert result == expected
+
+
+def test_model_directory_raises_on_invalid_metric_name() -> None:
+    directory = Directory("/foo/bar", 1234567890, 42)
+    with pytest.raises(ValueError):
+        directory.as_metric_line("walk_watcher test")
+
+
 @pytest.mark.parametrize(
     "path, expected",
     [
@@ -70,6 +85,21 @@ def test_model_file_str() -> None:
         str(file_removed)
         == "/foo/bar/baz.txt (5 minutes old, last seen 2009-02-13 18:36:30) (removed)"
     )
+
+
+def test_model_file_as_metric_line() -> None:
+    file = File("/foo/bar", "baz.txt", 1234567890, 1234568190, 0)
+    expected = "walk_watcher_test,directory.oldest.file.minutes=/foo/bar 5"
+
+    result = file.as_metric_line("walk_watcher_test")
+
+    assert result == expected
+
+
+def test_model_file_as_metric_line_raises_on_invalid_metric_name() -> None:
+    file = File("/foo/bar", "baz.txt", 1234567890, 1234568190, 0)
+    with pytest.raises(ValueError):
+        file.as_metric_line("walk_watcher test")
 
 
 def test_create_file_table(store_db: walkwatcher.StoreDB) -> None:
