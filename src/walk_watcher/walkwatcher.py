@@ -134,6 +134,29 @@ class StoreDB:
             [(file.last_seen, file.root, file.filename) for file in files],
         )
 
+    def get_directory_rows(self) -> list[Directory]:
+        """Get most recently seen directories and their file counts."""
+        self.logger.debug("Getting directory rows")
+        with closing(self._connection.cursor()) as cursor:
+            cursor.execute(
+                """
+                WITH ptn_directories AS
+                    (
+                        SELECT root, last_seen, file_count,
+                            ROW_NUMBER() OVER
+                                ( PARTITION BY root ORDER BY last_seen DESC ) rn
+                        FROM directories
+                    )
+                SELECT root, last_seen, file_count
+                FROM ptn_directories
+                WHERE rn = 1
+                """
+            )
+            return [
+                Directory(root, last_seen, file_count)
+                for root, last_seen, file_count in cursor.fetchall()
+            ]
+
 
 def _sanitize_directory_path(path: str) -> str:
     """

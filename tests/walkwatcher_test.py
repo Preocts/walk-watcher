@@ -181,3 +181,17 @@ def test_save_files_marks_all_removed(
     removed = [value[0] for value in cursor.fetchall()]
 
     assert all(removed)
+
+
+def test_get_directory_rows(store_db: walkwatcher.StoreDB) -> None:
+    directories = [
+        Directory(root="root1", last_seen=1234567891, file_count=0),
+        Directory(root="root1", last_seen=1234567890, file_count=0),
+    ]
+
+    store_db.save_directories(directories)
+
+    rows = store_db.get_directory_rows()
+
+    assert len(rows) == 1
+    assert rows[0] == directories[0]
