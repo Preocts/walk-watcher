@@ -333,3 +333,20 @@ class StoreDB:
                 Directory(root, last_seen, file_count)
                 for root, last_seen, file_count in cursor.fetchall()
             ]
+
+    def get_file_rows(self, directory: Directory) -> list[File]:
+        """Get all present files for the given directory."""
+        self.logger.debug("Getting file rows for %s", directory.root)
+        with closing(self._connection.cursor()) as cursor:
+            cursor.execute(
+                """
+                SELECT root, filename, first_seen, last_seen, removed
+                FROM files
+                WHERE root = ? AND removed = 0
+                """,
+                (directory.root,),
+            )
+            return [
+                File(root, filename, first_seen, last_seen, removed)
+                for root, filename, first_seen, last_seen, removed in cursor.fetchall()
+            ]

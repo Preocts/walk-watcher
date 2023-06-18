@@ -332,3 +332,37 @@ def test_get_directory_rows(store_db: StoreDB) -> None:
 
     assert len(rows) == 1
     assert rows[0] == directories[0]
+
+
+def test_get_file_rows(store_db: StoreDB) -> None:
+    files = [
+        File(
+            root="root1",
+            filename="file1",
+            first_seen=1234567891,
+            last_seen=1234567891,
+            removed=0,
+        ),
+        File(
+            root="root1",
+            filename="file1",
+            first_seen=1234567891,
+            last_seen=1234567891,
+            removed=1,
+        ),
+        File(
+            root="root2",
+            filename="file2",
+            first_seen=1234567890,
+            last_seen=1234567891,
+            removed=0,
+        ),
+    ]
+    directory = Directory(root="root1", last_seen=1234567891, file_count=0)
+
+    store_db.save_files(files)
+
+    rows = store_db.get_file_rows(directory)
+
+    assert len(rows) == 1
+    assert rows[0] == files[0]
