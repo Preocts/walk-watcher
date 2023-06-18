@@ -67,7 +67,8 @@ class StoreDB:
                 id INTEGER PRIMARY KEY,
                 root TEXT NOT NULL,
                 last_seen INTEGER NOT NULL,
-                file_count INTEGER NOT NULL
+                file_count INTEGER NOT NULL,
+                UNIQUE(root, last_seen)
             )
             """
         )
@@ -79,7 +80,7 @@ class StoreDB:
         with closing(self._connection.cursor()) as cursor:
             cursor.executemany(
                 """
-                INSERT INTO directories (root, last_seen, file_count)
+                INSERT OR IGNORE INTO directories (root, last_seen, file_count)
                 VALUES (?, ?, ?)
                 """,
                 [

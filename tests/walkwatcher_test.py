@@ -75,6 +75,9 @@ def test_save_directories(
     store_db: walkwatcher.StoreDB,
     directories: list[Directory],
 ) -> None:
+    # We save the directories twice to ensure that the
+    # UNIQUE(root, last_seen) constraint is working.
+    store_db.save_directories(directories)
     store_db.save_directories(directories)
     cursor = store_db._connection.cursor()
     cursor.execute("SELECT * FROM directories")

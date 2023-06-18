@@ -30,17 +30,17 @@
         "file_count": 30
     },
     {
-        "root": "bar",
+        "root": "baz",
         "last_seen": 100,
         "file_count": 10
     },
     {
-        "root": "bar",
+        "root": "baz",
         "last_seen": 120,
         "file_count": 20
     },
     {
-        "root": "bar",
+        "root": "baz",
         "last_seen": 130,
         "file_count": 30
     }
