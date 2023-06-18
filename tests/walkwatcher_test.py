@@ -373,3 +373,29 @@ def test_get_file_rows(store_db: StoreDB) -> None:
 
     assert len(rows) == 1
     assert rows[0] == files[0]
+
+
+def test_get_oldest_files(store_db: StoreDB) -> None:
+    init_files = [
+        File("root1", "file1", 1234567890),
+        File("root1", "file2", 1234567890),
+        File("root2", "file1", 1234567890),
+        File("root2", "file2", 1234567890),
+    ]
+    store_db.save_files(init_files)
+    update_files = [
+        File("root1", "file1", 1234567893),
+        File("root1", "file2", 1234567891),
+        File("root2", "file1", 1234567891),
+        File("root2", "file2", 1234567893),
+    ]
+    store_db.save_files(update_files)
+
+    rows = store_db.get_oldest_files()
+    print(rows)
+
+    assert len(rows) == 2
+    assert rows[0].root == "root1"
+    assert rows[0].filename == "file1"
+    assert rows[1].root == "root2"
+    assert rows[1].filename == "file2"

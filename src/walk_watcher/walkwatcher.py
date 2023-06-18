@@ -339,15 +339,39 @@ class StoreDB:
             ]
 
     def get_file_rows(self, directory: Directory) -> list[File]:
-        """Get all present files for the given directory."""
+        """Get all present files for the given directory sorted by age descending."""
         self.logger.debug("Getting file rows for %s", directory.root)
         with closing(self._connection.cursor()) as cursor:
             cursor.execute(
                 """
-                SELECT root, filename, first_seen, last_seen, age_seconds, removed
+                SELECT root, filename, last_seen, first_seen, age_seconds, removed
                 FROM files
                 WHERE root = ? AND removed = 0
+                ORDER BY age_seconds DESC
                 """,
                 (directory.root,),
             )
+            # Watch the order of the columns here
+            return [File(*row) for row in cursor.fetchall()]
+
+    def get_oldest_files(self) -> list[File]:
+        """Get the oldest file per directory that are not removed."""
+        self.logger.debug("Getting oldest files")
+        with closing(self._connection.cursor()) as cursor:
+            cursor.execute(
+                """
+                WITH ptn_files AS
+                    (
+                        SELECT root, filename, last_seen, first_seen, age_seconds,
+                            ROW_NUMBER() OVER
+                                ( PARTITION BY root ORDER BY age_seconds DESC ) rn
+                        FROM files
+                        WHERE removed = 0
+                    )
+                SELECT root, filename, first_seen, last_seen, age_seconds
+                FROM ptn_files
+                WHERE rn = 1
+                """
+            )
+            # Watch the order of the columns here
             return [File(*row) for row in cursor.fetchall()]
