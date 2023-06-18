@@ -124,7 +124,9 @@ def test_save_file_existing_row_updated(
     files[-1] = File(
         root=files[-1].root,
         filename=files[-1].filename,
+        first_seen=expected_first_seen,
         last_seen=1234567890,
+        removed=0,
     )
 
     store_db.save_files(files)
@@ -149,7 +151,13 @@ def test_save_file_add_new_row_with_existing_rows(
     store_db.save_files(files)
 
     # Add a new file with a different root and filename
-    new_file = File(root="new_root", filename="new_file", last_seen=1234567890)
+    new_file = File(
+        root="new_root",
+        filename="new_file",
+        first_seen=1234567890,
+        last_seen=1234567890,
+        removed=0,
+    )
     files.append(new_file)
 
     store_db.save_files(files)

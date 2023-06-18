@@ -22,7 +22,9 @@ class File:
 
     root: str
     filename: str
+    first_seen: int
     last_seen: int
+    removed: int
 
 
 class StoreDB:
@@ -114,10 +116,16 @@ class StoreDB:
         cursor.executemany(
             """
             INSERT OR IGNORE INTO files (root, filename, first_seen, last_seen, removed)
-            VALUES (?, ?, ?, ?, 0)
+            VALUES (?, ?, ?, ?, ?)
             """,
             [
-                (file.root, file.filename, file.last_seen, file.last_seen)
+                (
+                    file.root,
+                    file.filename,
+                    file.first_seen,
+                    file.last_seen,
+                    file.removed,
+                )
                 for file in files
             ],
         )

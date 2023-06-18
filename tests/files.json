@@ -2,16 +2,22 @@
     {
         "root": "some/path/here",
         "filename": "foo",
-        "last_seen": 10
+        "first_seen": 10,
+        "last_seen": 10,
+        "removed": 0
     },
     {
         "root": "some/path/here",
         "filename": "bar",
-        "last_seen": 10
+        "first_seen": 10,
+        "last_seen": 10,
+        "removed": 0
     },
     {
         "root": "some/path/here",
         "filename": "baz",
-        "last_seen": 10
+        "first_seen": 10,
+        "last_seen": 10,
+        "removed": 0
     }
 ]
