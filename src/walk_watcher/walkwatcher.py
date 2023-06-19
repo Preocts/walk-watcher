@@ -12,7 +12,6 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from collections.abc import Generator
     from types import TracebackType
     from typing import Protocol
 
@@ -530,25 +529,22 @@ class WalkWatcher:
         """Run the watcher, walking the directory and saving the results."""
         self.logger.info("Running watcher...")
         tic = time.perf_counter()
-        total_files = 0
 
-        directories = []
         with self._store as data_store:
-            self.logger.debug("Walking and saving file data...")
-            for directory, files in self._walk_directory():
-                directories.append(directory)
-                files = self._filter_files(files)
-                data_store.save_files(files)
-                total_files += len(files)
+            directories, files = self._walk_directories()
 
-            self.logger.debug("Saving directory data...")
+            self.logger.debug("Filtering and Saving file data...")
+            files = self._filter_files(files)
+            data_store.save_files(files)
+
+            self.logger.debug("Filtering and Saving directory data...")
             directories = self._filter_directories(directories)
             data_store.save_directories(directories)
 
         toc = time.perf_counter()
         self.logger.info("Watcher finished in %s seconds", toc - tic)
         self.logger.info("Detected %s directories", len(directories))
-        self.logger.info("Detected %s files", total_files)
+        self.logger.info("Detected %s files", len(files))
 
     def _filter_files(self, files: list[File]) -> list[File]:
         """Filter the given files based on the config."""
@@ -571,15 +567,18 @@ class WalkWatcher:
             if not exlude_ptn.search(directory.root)
         ]
 
-    def _walk_directory(self) -> Generator[tuple[Directory, list[File]], None, None]:
+    def _walk_directories(self) -> tuple[list[Directory], list[File]]:
         """
-        Walk the config defined directory and yield each directory and its files.
+        Walk the root directory and return the directories and files.
 
-        Yields:
-            A tuple of the directory and its files.
+        Returns:
+            A tuple of directories and files.
         """
         root = self._config.root_directory
         remove_prefix = self._config.remove_prefix
+
+        files: list[File] = []
+        directories: list[Directory] = []
 
         for dirpath, _, filenames in os.walk(root):
             now = int(datetime.now().timestamp())
@@ -587,10 +586,13 @@ class WalkWatcher:
                 dirpath = dirpath.lstrip(remove_prefix)
                 dirpath = dirpath or "/"
 
-            directory = Directory(dirpath, now, len(filenames))
-            files = [File(dirpath, filename, now) for filename in filenames]
+            directories.append(Directory(dirpath, now, len(filenames)))
+            files.extend([File(dirpath, filename, now) for filename in filenames])
 
-            yield directory, files
+        self.logger.debug("Found %s directories", len(directories))
+        self.logger.debug("Found %s files", len(files))
+
+        return directories, files
 
 
 def write_new_config(filename: str) -> None:
@@ -603,3 +605,12 @@ def write_new_config(filename: str) -> None:
 
     with open(filename, "w") as config_file:
         config_file.write(config)
+
+
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
+    filename = "file-watcher.ini"
+    write_new_config(filename)
+    config = WatcherConfig(filename)
+    watcher = WalkWatcher(config)
+    watcher.run()

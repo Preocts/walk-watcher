@@ -99,14 +99,10 @@ def test_model_file_as_metric_line_raises_on_invalid_metric_name() -> None:
 def test_walk_directory_strip_root(watcher: WalkWatcher) -> None:
     cwd = os.getcwd()
     root = os.path.join(cwd, "tests/fixture")
-    all_directories: list[Directory] = []
-    all_files: list[File] = []
 
     with patch.object(watcher._config, "root_directory", root):
         with patch.object(watcher._config, "remove_prefix", cwd):
-            for directory, files in watcher._walk_directory():
-                all_directories.append(directory)
-                all_files.extend(files)
+            all_directories, all_files = watcher._walk_directories()
 
     assert len(all_directories) == 3
     assert len(all_files) == 3
@@ -114,7 +110,7 @@ def test_walk_directory_strip_root(watcher: WalkWatcher) -> None:
     for directory in all_directories:
         assert not directory.root.startswith(root)
 
-    for file in files:
+    for file in all_files:
         assert not file.root.startswith(root)
 
 
@@ -126,9 +122,7 @@ def test_walk_directory_keep_root(watcher: WalkWatcher) -> None:
 
     with patch.object(watcher._config, "root_directory", root):
         with patch.object(watcher._config, "remove_prefix", ""):
-            for directory, files in watcher._walk_directory():
-                all_directories.append(directory)
-                all_files.extend(files)
+            all_directories, all_files = watcher._walk_directories()
 
     assert len(all_directories) == 3
     assert len(all_files) == 3
@@ -136,7 +130,7 @@ def test_walk_directory_keep_root(watcher: WalkWatcher) -> None:
     for directory in all_directories:
         assert directory.root.startswith(root)
 
-    for file in files:
+    for file in all_files:
         assert file.root.startswith(root)
 
 
