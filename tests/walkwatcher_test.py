@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import os
+import tempfile
 from datetime import datetime
 from unittest.mock import MagicMock
 from unittest.mock import patch
 
 import pytest
 
+from walk_watcher import walkwatcher
 from walk_watcher.walkwatcher import Directory
 from walk_watcher.walkwatcher import File
 from walk_watcher.walkwatcher import WalkWatcher
@@ -175,3 +177,39 @@ def test_filter_directories(watcher: WalkWatcher) -> None:
     assert len(result_all) == 0
     assert len(result_one) == 1
     assert len(result_none) == 3
+
+
+def test_write_new_config() -> None:
+    try:
+        fd, filename = tempfile.mkstemp(suffix=".ini")
+        os.close(fd)
+        os.remove(filename)
+        expected = walkwatcher.NEW_CONFIG.format(
+            filename=filename.replace(".ini", ".db")
+        )
+
+        walkwatcher.write_new_config(filename)
+
+        with open(filename) as f:
+            content = f.read()
+
+        assert content == expected
+
+    finally:
+        os.remove(filename)
+
+
+def test_write_new_config_early_exit_when_exists() -> None:
+    try:
+        fd, filename = tempfile.mkstemp(suffix=".ini")
+        os.close(fd)
+
+        walkwatcher.write_new_config(filename)
+
+        with open(filename) as f:
+            content = f.read()
+
+        assert content == ""
+
+    finally:
+        os.remove(filename)

@@ -34,6 +34,29 @@ if TYPE_CHECKING:
             ...
 
 
+NEW_CONFIG = """\
+[system]
+database_path = {filename}
+max_is_running_seconds = 300
+oldest_directory_row_days = 30
+oldest_file_row_days = 30
+max_files_per_directory = 1000
+
+[watcher]
+# Metric names cannot contain spaces or commas.
+metric_name = file.watcher
+root_directory = .
+remove_prefix = .
+
+# Exclude directories and files from being watched.
+# The following are regular expressions and are matched against the full path.
+# Multiline values are combined into a single regular expression.
+exclude_directories = ^\\..*$
+exclude_files = ^\\..*$
+
+    """
+
+
 @dataclasses.dataclass(frozen=True)
 class Directory:
     """A directory row in the database."""
@@ -118,7 +141,7 @@ class WatcherConfig:
     @property
     def database_path(self) -> str:
         """Return the path to the database file, or ":memory:" if not set."""
-        return self._config.get("system", "path", fallback=":memory:")
+        return self._config.get("system", "database_path", fallback=":memory:")
 
     @property
     def max_is_running_seconds(self) -> int:
@@ -540,7 +563,6 @@ class WalkWatcher:
         """Filter the given directories based on the config."""
         if not self._config.exclude_directory_pattern:
             return directories
-        print(self._config.exclude_directory_pattern)
         exlude_ptn = re.compile(self._config.exclude_directory_pattern)
 
         return [
@@ -569,3 +591,15 @@ class WalkWatcher:
             files = [File(dirpath, filename, now) for filename in filenames]
 
             yield directory, files
+
+
+def write_new_config(filename: str) -> None:
+    """Write a new config file if one does not exist."""
+    if os.path.exists(filename):
+        return
+
+    config_name = filename.replace(".ini", ".db")
+    config = NEW_CONFIG.format(filename=config_name)
+
+    with open(filename, "w") as config_file:
+        config_file.write(config)
