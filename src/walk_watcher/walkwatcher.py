@@ -5,6 +5,7 @@ import logging
 import os
 import re
 import sqlite3
+import time
 from configparser import ConfigParser
 from contextlib import closing
 from datetime import datetime
@@ -493,9 +494,60 @@ class WalkWatcher:
 
         Args:
             config: The configuration to use for this watcher.
+
+        NOTE: The config should not be used by multiple instances of this
+            class. This is because the config is used to determine the
+            database path and we don't want multiple instances of this class
+            writing to the same database.
         """
         self._config = config
         self._store = StoreDB.from_config(config)
+
+    def run(self) -> None:
+        """Run the watcher, walking the directory and saving the results."""
+        self.logger.info("Running watcher...")
+        tic = time.perf_counter()
+        total_files = 0
+
+        directories = []
+        with self._store as data_store:
+            self.logger.debug("Walking and saving file data...")
+            for directory, files in self._walk_directory():
+                directories.append(directory)
+                files = self._filter_files(files)
+                data_store.save_files(files)
+                total_files += len(files)
+
+            self.logger.debug("Saving directory data...")
+            directories = self._filter_directories(directories)
+            data_store.save_directories(directories)
+
+        toc = time.perf_counter()
+        self.logger.info("Watcher finished in %s seconds", toc - tic)
+        self.logger.info("Detected %s directories", len(directories))
+        self.logger.info("Detected %s files", total_files)
+
+    def _filter_files(self, files: list[File]) -> list[File]:
+        """Filter the given files based on the config."""
+        if not self._config.exclude_file_pattern:
+            return files
+
+        exlude_ptn = re.compile(self._config.exclude_file_pattern)
+
+        return [file for file in files if not exlude_ptn.search(file.filename)]
+
+    def _filter_directories(self, directories: list[Directory]) -> list[Directory]:
+        """Filter the given directories based on the config."""
+        if not self._config.exclude_directory_pattern:
+            return directories
+        print(self._config.exclude_directory_pattern)
+        exlude_ptn = re.compile(self._config.exclude_directory_pattern)
+
+        return [
+            directory
+            for directory in directories
+            if not exlude_ptn.search(directory.root)
+        ]
 
     def _walk_directory(self) -> Generator[tuple[Directory, list[File]], None, None]:
         """

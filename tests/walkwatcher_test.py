@@ -19,6 +19,11 @@ def watcher() -> WalkWatcher:
         max_is_running_seconds=1,
         oldest_directory_row_days=2,
         oldest_file_row_days=3,
+        metric_name="walk_watcher_test",
+        root_directory="tests/fixture",
+        remove_prefix="tests/",
+        exclude_file_pattern="file01",
+        exclude_directory_pattern=r"directory02|fixture\/$",
     )
     return WalkWatcher(config)
 
@@ -131,3 +136,42 @@ def test_walk_directory_keep_root(watcher: WalkWatcher) -> None:
 
     for file in files:
         assert file.root.startswith(root)
+
+
+def test_filter_files(watcher: WalkWatcher) -> None:
+    mock_files = [
+        File("/foo/bar", "file01.txt", 1234567890, 1234567890, 0, 0),
+        File("/foo/bar", "file02.txt", 1234567890, 1234567890, 0, 0),
+    ]
+    with patch.object(watcher._config, "exclude_file_pattern", "file0.*"):
+        result_all = watcher._filter_files(mock_files)
+
+    with patch.object(watcher._config, "exclude_file_pattern", "file01"):
+        result_one = watcher._filter_files(mock_files)
+
+    with patch.object(watcher._config, "exclude_file_pattern", ""):
+        result_none = watcher._filter_files(mock_files)
+
+    assert len(result_all) == 0
+    assert len(result_one) == 1
+    assert len(result_none) == 2
+
+
+def test_filter_directories(watcher: WalkWatcher) -> None:
+    mock_directories = [
+        Directory("/foo", 1234567890, 0),
+        Directory("/foo/bar", 1234567890, 0),
+        Directory("/foo/bar/baz", 1234567890, 0),
+    ]
+    with patch.object(watcher._config, "exclude_directory_pattern", r"\/foo$|\/bar"):
+        result_all = watcher._filter_directories(mock_directories)
+
+    with patch.object(watcher._config, "exclude_directory_pattern", r"\/bar"):
+        result_one = watcher._filter_directories(mock_directories)
+
+    with patch.object(watcher._config, "exclude_directory_pattern", ""):
+        result_none = watcher._filter_directories(mock_directories)
+
+    assert len(result_all) == 0
+    assert len(result_one) == 1
+    assert len(result_none) == 3
