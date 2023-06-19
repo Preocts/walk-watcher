@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from unittest.mock import MagicMock
 from unittest.mock import patch
 
 import pytest
@@ -56,6 +57,20 @@ def store_db_full() -> StoreDB:
     )
     db._connection.commit()
     return db
+
+
+def test_storedb_built_from_config() -> None:
+    config = MagicMock(
+        database_path=":memory:",
+        max_is_running_seconds=1,
+        oldest_directory_row_days=2,
+        oldest_file_row_days=3,
+    )
+    store_db = StoreDB.from_config(config)
+
+    assert store_db._max_is_running_age == 1
+    assert store_db._oldest_directory_row_age == 2
+    assert store_db._oldest_file_row_age == 3
 
 
 def test_storedb_works_with_context_manager() -> None:
