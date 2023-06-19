@@ -25,5 +25,5 @@ def test_watcherconfig_loads_test_fixture_completely() -> None:
     assert config.root_directory == "tests/fixture"
     assert config.remove_prefix == "tests/"
 
-    assert config.exclude_directory_pattern == r"\/directory02|fixture$"
+    assert config.exclude_directory_pattern == r"\/directory02|fixture$|\\directory02"
     assert config.exclude_file_pattern == "file01.*"
