@@ -6,8 +6,8 @@ from unittest.mock import patch
 
 import pytest
 
-from walk_watcher.watcherstore import Directory
-from walk_watcher.watcherstore import File
+from walk_watcher.watchermodel import Directory
+from walk_watcher.watchermodel import File
 from walk_watcher.watcherstore import WatcherStore
 
 MAX_IS_RUNNING_AGE = 5 * 60  # 5 minutes

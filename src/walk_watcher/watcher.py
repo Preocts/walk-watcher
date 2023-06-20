@@ -7,8 +7,8 @@ import time
 from datetime import datetime
 
 from .watcherconfig import WatcherConfig
-from .watcherstore import Directory
-from .watcherstore import File
+from .watchermodel import Directory
+from .watchermodel import File
 from .watcherstore import WatcherStore
 
 
