@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from walk_watcher.walkwatcher import WatcherConfig
+from walk_watcher.watcherconfig import WatcherConfig
 
 CONFIG_PATH = "tests/test_config.ini"
 
