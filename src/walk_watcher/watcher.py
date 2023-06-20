@@ -12,7 +12,7 @@ from .watcherstore import File
 from .watcherstore import WatcherStore
 
 
-class WalkWatcher:
+class Watcher:
     """Track file counts and file ages for a given directory."""
 
     logger = logging.getLogger(__name__)
