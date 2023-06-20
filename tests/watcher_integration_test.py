@@ -1,14 +1,14 @@
 from __future__ import annotations
 
-from walk_watcher.walkwatcher import WalkWatcher
-from walk_watcher.walkwatcher import WatcherConfig
+from walk_watcher.watcher import Watcher
+from walk_watcher.watcher import WatcherConfig
 
 CONFIG_FILE = "tests/test_config.ini"
 
 
 def test_integration_against_fixture_directory() -> None:
     config = WatcherConfig(CONFIG_FILE)
-    watcher = WalkWatcher(config)
+    watcher = Watcher(config)
 
     watcher.run()
 
