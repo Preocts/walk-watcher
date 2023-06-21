@@ -17,30 +17,25 @@ def test_model_directory_str() -> None:
 
 
 def test_model_directory_as_metric_line() -> None:
+    metric_name = "walk watcher test"
     directory = Directory("/foo/bar", 1234567890, 42)
     expected = "walk_watcher_test,directory.file.count=/foo/bar 42"
 
-    result = directory.as_metric_line("walk_watcher_test")
+    result = directory.as_metric_line(metric_name)
 
     assert result == expected
-
-
-def test_model_directory_raises_on_invalid_metric_name() -> None:
-    directory = Directory("/foo/bar", 1234567890, 42)
-    with pytest.raises(ValueError):
-        directory.as_metric_line("walk_watcher test")
 
 
 @pytest.mark.parametrize(
     "path, expected",
     [
         ("", ""),
-        ("foo", "foo"),
-        ("foo/bar", "foo.bar"),
-        ("foo/bar/baz", "foo.bar.baz"),
-        ("Foo/Bar/Baz", "foo.bar.baz"),
-        ("Foo\\Bar\\Baz", "foo.bar.baz"),
-        ("Foo Bar baz", "foo_bar_baz"),
+        ("foo?", "foo"),
+        ("foo/bar", "foo/bar"),
+        ("foo/bar/baz", "foo/bar/baz"),
+        ("Foo/Bar/Baz", "Foo/Bar/Baz"),
+        ("Foo\\Bar\\Baz", "Foo\\\\Bar\\\\Baz"),
+        ("Foo Bar baz", "Foo_Bar_baz"),
     ],
 )
 def test_sanitize_directory_path(path: str, expected: str) -> None:
@@ -60,15 +55,10 @@ def test_model_file_str() -> None:
 
 
 def test_model_file_as_metric_line() -> None:
+    metric_name = "walk watcher test"
     file = File("/foo/bar", "baz.txt", 1234567890, 1234568190, 300, 0)
     expected = "walk_watcher_test,oldest.file.seconds=/foo/bar 300"
 
-    result = file.as_metric_line("walk_watcher_test")
+    result = file.as_metric_line(metric_name)
 
     assert result == expected
-
-
-def test_model_file_as_metric_line_raises_on_invalid_metric_name() -> None:
-    file = File("/foo/bar", "baz.txt", 1234567890, 1234568190, 0, 0)
-    with pytest.raises(ValueError):
-        file.as_metric_line("walk_watcher test")
