@@ -20,9 +20,7 @@ class Directory:
 
     def as_metric_line(self, metric_name: str) -> str:
         """Return a string representation of the directory in metric format."""
-        if re.search(r"\s", metric_name):
-            raise ValueError("Metric name cannot contain whitespace")
-
+        metric_name = re.sub(r"\s+", "_", metric_name)
         return f"{metric_name},directory.file.count={self.root} {self.file_count}"
 
     @staticmethod
@@ -64,7 +62,6 @@ class File:
 
     def as_metric_line(self, metric_name: str) -> str:
         """Return a string representation of the file in metric format."""
-        if re.search(r"\s", metric_name):
-            raise ValueError("Metric name cannot contain whitespace")
+        metric_name = re.sub(r"\s+", "_", metric_name)
 
         return f"{metric_name},oldest.file.seconds={self.root} {self.age_seconds}"
