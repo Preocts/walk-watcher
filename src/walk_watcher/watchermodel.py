@@ -28,8 +28,7 @@ class Directory:
     @staticmethod
     def _sanitize_directory_path(path: str) -> str:
         """
-        Sanitize a directory path, removing all non-alphanumeric characters and
-        replacing `/` and `\\` with `.`.
+        Remove invalid characters from a directory path and double backslashes.
 
         Args:
             path: The directory path to sanitize.
@@ -37,9 +36,9 @@ class Directory:
         Returns:
             The sanitized directory path.
         """
-        path = re.sub(r"[\/\\]", ".", path)
         path = re.sub(r"\s+", "_", path)
-        return re.sub(r"[^a-zA-Z0-9._]", "", path.lower())
+        path = path.replace("\\", "\\\\")
+        return re.sub(r"[^a-zA-Z0-9\/\\_:]", "", path)
 
 
 @dataclasses.dataclass(frozen=True)
