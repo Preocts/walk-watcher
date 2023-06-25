@@ -105,6 +105,8 @@ class WatcherStore:
         traceback: TracebackType | None,
     ) -> None:
         """Exit a context manager."""
+        self.clean_oldest_directories()
+        self.clean_oldest_files()
         self.stop_run()
 
     def _create_file_table(self) -> None:
@@ -342,3 +344,32 @@ class WatcherStore:
             )
             # Watch the order of the columns here
             return [File(*row) for row in cursor.fetchall()]
+
+    def clean_oldest_directories(self) -> None:
+        """Remove any directory row that is older than max age."""
+        self.logger.debug("Cleaning oldest directories")
+        now = int(datetime.now().timestamp())
+        max_age = now - self._oldest_directory_row_age * 86400
+        with closing(self._connection.cursor()) as cursor:
+            cursor.execute(
+                """
+                DELETE FROM directories
+                WHERE last_seen < ?
+                """,
+                (max_age,),
+            )
+            self._connection.commit()
+
+    def clean_oldest_files(self) -> None:
+        """Remove any file row that is older than max age."""
+        self.logger.debug("Cleaning oldest files")
+        max_age = self._oldest_file_row_age * 86400
+        with closing(self._connection.cursor()) as cursor:
+            cursor.execute(
+                """
+                DELETE FROM files
+                WHERE age_seconds > ?
+                """,
+                (max_age,),
+            )
+            self._connection.commit()
