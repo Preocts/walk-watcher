@@ -13,23 +13,26 @@ from walk_watcher.watcherstore import WatcherStore
 MAX_IS_RUNNING_AGE = 5 * 60  # 5 minutes
 
 # Predefine some rows for testing.
+NOW_TS = int(datetime.now().timestamp())
+THIRTYONE_DAYS = 31 * 24 * 60 * 60
+NOW_TX_PLUS_31_DAYS = NOW_TS - THIRTYONE_DAYS
 DIRECTORY_ROWS = [
-    [1, "/home/user", 1618224000, 0],
-    [2, "/home/user/obiwan", 1618224000, 15],
-    [3, "/home/user/anakin", 1618224000, 10],
-    [4, "/home/user/luke", 1618224000, 5],
-    [5, "/home/user", 1618224060, 0],
-    [6, "/home/user/obiwan", 1618224060, 2],
-    [7, "/home/user/anakin", 1618224060, 0],
-    [8, "/home/user/luke", 1618224060, 2],
+    [1, "/home/user", NOW_TS, 0],
+    [2, "/home/user/obiwan", NOW_TS, 15],
+    [3, "/home/user/anakin", NOW_TS, 10],
+    [4, "/home/user/luke", NOW_TS, 5],
+    [5, "/home/user", NOW_TX_PLUS_31_DAYS, 0],
+    [6, "/home/user/obiwan", NOW_TX_PLUS_31_DAYS, 2],
+    [7, "/home/user/anakin", NOW_TX_PLUS_31_DAYS, 0],
+    [8, "/home/user/luke", NOW_TX_PLUS_31_DAYS, 2],
 ]
 FILE_ROWS = [
-    [1, "/home/user/obiwan", "file1", 1234567890, 1234567893, 3, 0],
-    [2, "/home/user/obiwan", "file2", 1234567890, 1234567891, 1, 0],
-    [3, "/home/user/obiwan", "file3", 1234567890, 1234567895, 5, 1],
-    [4, "/home/user/luke", "file1", 1234567890, 1234567891, 1, 0],
-    [5, "/home/user/luke", "file2", 1234567890, 1234567894, 4, 0],
-    [6, "/home/user/luke", "file3", 1234567890, 1234567895, 5, 1],
+    [1, "/home/user/obiwan", "file1", NOW_TS, NOW_TS + 3, 3, 0],
+    [2, "/home/user/obiwan", "file2", NOW_TS, NOW_TS, 1, 0],
+    [3, "/home/user/obiwan", "file3", NOW_TS, NOW_TX_PLUS_31_DAYS, THIRTYONE_DAYS, 1],
+    [4, "/home/user/luke", "file1", NOW_TS, NOW_TS, 1, 0],
+    [5, "/home/user/luke", "file2", NOW_TS, NOW_TS + 4, 4, 0],
+    [6, "/home/user/luke", "file3", NOW_TS, NOW_TX_PLUS_31_DAYS, THIRTYONE_DAYS, 1],
 ]
 
 
