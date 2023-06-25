@@ -313,3 +313,23 @@ def test_get_oldest_files(store_db_full: WatcherStore) -> None:
     assert rows[0].filename == "file2"
     assert rows[1].root == "/home/user/obiwan"
     assert rows[1].filename == "file1"
+
+
+def test_clean_oldest_directories(store_db_full: WatcherStore) -> None:
+    store_db_full.clean_oldest_directories()
+
+    cursor = store_db_full._connection.cursor()
+    cursor.execute("SELECT * FROM directories")
+    rows = cursor.fetchall()
+
+    assert len(rows) == 4
+
+
+def test_clean_oldest_files(store_db_full: WatcherStore) -> None:
+    store_db_full.clean_oldest_files()
+
+    cursor = store_db_full._connection.cursor()
+    cursor.execute("SELECT * FROM files")
+    rows = cursor.fetchall()
+
+    assert len(rows) == 4
