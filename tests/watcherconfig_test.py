@@ -33,6 +33,15 @@ def test_watcherconfig_loads_test_fixture_completely() -> None:
     assert config.exclude_directory_pattern == r"\/directory02|fixture$|\\directory02"
     assert config.exclude_file_pattern == "file01.*"
 
+    assert config.dimensions == "config.file.name=:memory:,config.type=testing"
+
+
+def test_dimensions_with_no_section() -> None:
+    config = WatcherConfig(CONFIG_PATH)
+    del config._config["dimensions"]
+
+    assert config.dimensions == ""
+
 
 def test_write_new_config() -> None:
     try:

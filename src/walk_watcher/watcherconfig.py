@@ -12,6 +12,12 @@ oldest_directory_row_days = 30
 oldest_file_row_days = 30
 max_files_per_directory = 1000
 
+[dimensions]
+# Dimensions are optional and can be used to add additional context to the metric.
+# By default directory file counts use "directory.file.count" as a dimension.
+# By default oldest file age uses "oldest.file.seconds" as a dimension.
+config.file.name = {filename}
+
 [watcher]
 # Metric names cannot contain spaces or commas.
 metric_name = file.watcher
@@ -95,6 +101,14 @@ class WatcherConfig:
         config_line = self._config.get("watcher", "exclude_files", fallback="")
         lines = [line.strip() for line in config_line.splitlines() if line.strip()]
         return "|".join(lines) or None
+
+    @property
+    def dimensions(self) -> str:
+        """Return a string of any additional dimensions to add to the metric."""
+        if not self._config.has_section("dimensions"):
+            return ""
+        dimensions = self._config["dimensions"]
+        return ",".join(f"{key}={value}" for key, value in dimensions.items())
 
 
 def write_new_config(filename: str) -> None:
