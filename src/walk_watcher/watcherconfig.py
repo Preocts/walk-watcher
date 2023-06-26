@@ -7,10 +7,15 @@ from configparser import ConfigParser
 NEW_CONFIG = """\
 [system]
 database_path = {filename}
-max_is_running_seconds = 300
-oldest_directory_row_days = 30
-oldest_file_row_days = 30
-max_files_per_directory = 1000
+max_is_running_seconds = 60
+oldest_directory_row_days = 14
+oldest_file_row_days = 14
+
+[dimensions]
+# Dimensions are optional and can be used to add additional context to the metric.
+# By default directory file counts use "directory.file.count" as a dimension.
+# By default oldest file age uses "oldest.file.seconds" as a dimension.
+config.file.name = {filename}
 
 [watcher]
 # Metric names cannot contain spaces or commas.
@@ -63,11 +68,6 @@ class WatcherConfig:
         return self._config.getint("system", "oldest_file_row_days", fallback=30)
 
     @property
-    def max_files_per_directory(self) -> int:
-        """Return the maximum number of files to store per directory."""
-        return self._config.getint("system", "max_files_per_directory", fallback=1000)
-
-    @property
     def metric_name(self) -> str:
         """Return the name of the metric to use."""
         return self._config.get("watcher", "metric_name", fallback="walk_watcher")
@@ -95,6 +95,14 @@ class WatcherConfig:
         config_line = self._config.get("watcher", "exclude_files", fallback="")
         lines = [line.strip() for line in config_line.splitlines() if line.strip()]
         return "|".join(lines) or None
+
+    @property
+    def dimensions(self) -> str:
+        """Return a string of any additional dimensions to add to the metric."""
+        if not self._config.has_section("dimensions"):
+            return ""
+        dimensions = self._config["dimensions"]
+        return ",".join(f"{key}={value}" for key, value in dimensions.items())
 
 
 def write_new_config(filename: str) -> None:

@@ -22,9 +22,8 @@ def test_watcherconfig_loads_test_fixture_completely() -> None:
 
     assert config.database_path == ":memory:"
     assert config.max_is_running_seconds == 60
-    assert config.oldest_directory_row_days == 15
-    assert config.oldest_file_row_days == 15
-    assert config.max_files_per_directory == 10_000
+    assert config.oldest_directory_row_days == 14
+    assert config.oldest_file_row_days == 14
 
     assert config.metric_name == "test_watcher"
     assert config.root_directory == "tests/fixture"
@@ -32,6 +31,15 @@ def test_watcherconfig_loads_test_fixture_completely() -> None:
 
     assert config.exclude_directory_pattern == r"\/directory02|fixture$|\\directory02"
     assert config.exclude_file_pattern == "file01.*"
+
+    assert config.dimensions == "config.file.name=:memory:,config.type=testing"
+
+
+def test_dimensions_with_no_section() -> None:
+    config = WatcherConfig(CONFIG_PATH)
+    del config._config["dimensions"]
+
+    assert config.dimensions == ""
 
 
 def test_write_new_config() -> None:
