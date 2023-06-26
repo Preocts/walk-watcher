@@ -22,9 +22,8 @@ def test_watcherconfig_loads_test_fixture_completely() -> None:
 
     assert config.database_path == ":memory:"
     assert config.max_is_running_seconds == 60
-    assert config.oldest_directory_row_days == 15
-    assert config.oldest_file_row_days == 15
-    assert config.max_files_per_directory == 10_000
+    assert config.oldest_directory_row_days == 14
+    assert config.oldest_file_row_days == 14
 
     assert config.metric_name == "test_watcher"
     assert config.root_directory == "tests/fixture"
