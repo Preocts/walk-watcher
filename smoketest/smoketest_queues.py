@@ -6,6 +6,8 @@ import random
 import shutil
 import threading
 import time
+from collections.abc import Generator
+from contextlib import contextmanager
 from enum import Enum
 from pathlib import Path
 from string import ascii_lowercase
@@ -138,7 +140,7 @@ def get_file_state(filename: str) -> FileState:
     file_content = Path(filename).read_text()
     file_state = FileState.WAITING
 
-    if file_content == "0":
+    if file_content == "0" or not file_content:
         file_state = FileState.RETRY
     elif int(file_content) <= int(time.time()):
         file_state = FileState.PROCESSED
@@ -263,8 +265,8 @@ def thread_output_count_of_files(stop_flag: threading.Event) -> None:
         print("*" * 79)
 
 
-def parse_args() -> argparse.Namespace:
-    """Parse command line arguments."""
+def parse_args() -> tuple[str, bool]:
+    """Parse command line arguments, return log level and verbose flag."""
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--log-level",
@@ -277,72 +279,95 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Output the number of files in each directory on a regular interval.",
     )
-    return parser.parse_args()
+    args = parser.parse_args()
+    return args.log_level, args.verbose
 
 
-def main() -> int:
-    """Main function."""
-    args = parse_args()
-    logging.basicConfig(level=args.log_level.upper(), format="%(asctime)s %(message)s")
+def start_threads(
+    stop_flag: threading.Event,
+    verbose: bool = False,
+) -> list[threading.Thread]:
+    """Start all threads."""
+    threads = []
+    for directory_name in QUEUE_FOLDERS:
+        threads.append(
+            threading.Thread(
+                target=thread_file_creator,
+                args=(directory_name, stop_flag),
+            )
+        )
+        threads[-1].start()
+
+        threads.append(
+            threading.Thread(
+                target=thread_file_mover,
+                args=(directory_name, stop_flag),
+            )
+        )
+        threads[-1].start()
+
+        threads.append(
+            threading.Thread(
+                target=thread_redrive,
+                args=(directory_name, stop_flag),
+            )
+        )
+        threads[-1].start()
+
+    if verbose:
+        threads.append(
+            threading.Thread(
+                target=thread_output_count_of_files,
+                args=(stop_flag,),
+            )
+        )
+        threads[-1].start()
+
+    return threads
+
+
+def stop_threads(threads: list[threading.Thread]) -> None:
+    """Join all threads, allowing them to stop."""
+    for thread in threads:
+        thread.join()
+
+
+@contextmanager
+def smoketest_runner(verbose: bool = False) -> Generator[None, None, None]:
+    """Run the smoketest."""
     stop_flag = threading.Event()
-    threads: list[threading.Thread] = []
 
-    print("Building smoketest directories...")
+    logger.debug("Building smoketest directories...")
     build_smoketest_directories()
 
-    print("Starting threads...")
     try:
-        for directory_name in QUEUE_FOLDERS:
-            threads.append(
-                threading.Thread(
-                    target=thread_file_creator,
-                    args=(directory_name, stop_flag),
-                )
-            )
-            threads[-1].start()
+        logger.debug("Starting threads...")
+        threads = start_threads(stop_flag, verbose)
 
-            threads.append(
-                threading.Thread(
-                    target=thread_file_mover,
-                    args=(directory_name, stop_flag),
-                )
-            )
-            threads[-1].start()
-
-            threads.append(
-                threading.Thread(
-                    target=thread_redrive,
-                    args=(directory_name, stop_flag),
-                )
-            )
-            threads[-1].start()
-
-        if args.verbose:
-            threads.append(
-                threading.Thread(
-                    target=thread_output_count_of_files,
-                    args=(stop_flag,),
-                )
-            )
-            threads[-1].start()
-
-        print("Press ctrl-c to stop")
-
-        while True:
-            time.sleep(1)
-
-    except KeyboardInterrupt:
-        stop_flag.set()
-        print("Stopping threads...")
-        for thread in threads:
-            thread.join()
-        input("Press enter to exit - this will delete all smoketest directories.")
+        yield None
 
     finally:
+        logger.debug("Stopping threads...")
+        stop_flag.set()
+        stop_threads(threads)
+        logger.debug("Destroying smoketest directories...")
         destroy_smoketest_directories()
+
+
+def run() -> int:
+    """Main function - blocking."""
+    level, verbose = parse_args()
+    logging.basicConfig(level=level, format="%(asctime)s %(message)s")
+
+    with smoketest_runner(verbose):
+        while True:
+            try:
+                time.sleep(1)
+            except KeyboardInterrupt:
+                break
 
     return 0
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    raise SystemExit(run())
