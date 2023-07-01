@@ -115,7 +115,7 @@ def _move_file(file: Path, destination: Path, new_file_name: str | None = None) 
     else:
         destination = destination / file.name
 
-    logger.info("Moving %s to %s", file, destination)
+    logger.debug("Moving %s to %s", file, destination)
     file.rename(destination)
 
 
@@ -126,7 +126,7 @@ def create_files_in_queue_dirctory(directory_name: str) -> None:
     paths = folder["paths"]
     file_count = random.randint(*FILE_COUNT_RANGE)
 
-    logger.info("Creating %s files in %s", file_count, paths[0])
+    logger.debug("Creating %s files in %s", file_count, paths[0])
 
     for _ in range(file_count):
         path = paths[0]
@@ -174,7 +174,7 @@ def thread_file_creator(directory_name: str, stop_flag: threading.Event) -> None
             continue
         next_run = time.time() + FILE_CREATE_INTERVAL
 
-        logger.info("Creating files in %s", directory_name)
+        logger.debug("Creating files in %s", directory_name)
         create_files_in_queue_dirctory(directory_name)
 
 
@@ -193,7 +193,7 @@ def thread_file_mover(directory_name: str, stop_flag: threading.Event) -> None:
             continue
         next_run = time.time() + FILE_MOVE_INTERVAL
 
-        logger.info("Moving files in %s", paths[0])
+        logger.debug("Moving files in %s", paths[0])
         for idx, path in enumerate(paths):
             for file in path.iterdir():
                 file_state = get_file_state(file)
@@ -231,7 +231,7 @@ def thread_redrive(directory_name: str, stop_flag: threading.Event) -> None:
             continue
         next_run = time.time() + RETRY_INTERVAL
 
-        logger.info("Redriving files in %s", retry)
+        logger.debug("Redriving files in %s", retry)
         for file in retry.iterdir():
             _move_file(file, paths[0])
 
