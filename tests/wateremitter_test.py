@@ -81,9 +81,10 @@ def test_get_lines_pops_left(emitter: WatcherEmitter) -> None:
 def test_to_file(emitter: WatcherEmitter) -> None:
     try:
         fd, temp_file_name = tempfile.mkstemp()
+        expected_file = f"{temp_file_name}_metric_lines.txt"
         os.close(fd)  # close for Windows
         emitter.to_file(temp_file_name)
-        with open(temp_file_name) as temp_file:
+        with open(expected_file) as temp_file:
             results = temp_file.read()
 
     finally:
