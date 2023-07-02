@@ -6,6 +6,8 @@ from configparser import ConfigParser
 
 NEW_CONFIG = """\
 [system]
+# config_name should be unique for each configuration file.
+config_name = {filename}
 database_path = {filename}
 max_is_running_seconds = 60
 oldest_directory_row_days = 14
@@ -51,6 +53,11 @@ class WatcherConfig:
             raise ValueError(f"Could not read config file at {filepath}")
 
         self.logger.debug("Loaded config from %s", filepath)
+
+    @property
+    def config_name(self) -> str:
+        """Return the name of the config."""
+        return self._config.get("system", "config_name", fallback="walk_watcher")
 
     @property
     def database_path(self) -> str:
