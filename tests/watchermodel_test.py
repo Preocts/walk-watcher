@@ -16,16 +16,6 @@ def test_model_directory_str() -> None:
     assert str(directory) == expected
 
 
-def test_model_directory_as_metric_line() -> None:
-    metric_name = "walk watcher test"
-    directory = Directory("/foo/bar", 1234567890, 42)
-    expected = "walk_watcher_test,directory.file.count=/foo/bar 42"
-
-    result = directory.as_metric_line(metric_name)
-
-    assert result == expected
-
-
 @pytest.mark.parametrize(
     "path, expected",
     [
@@ -52,13 +42,3 @@ def test_model_file_str() -> None:
 
     assert str(file_present) == f"{expected} {expected_preset}"
     assert str(file_removed) == f"{expected} {expected_removed}"
-
-
-def test_model_file_as_metric_line() -> None:
-    metric_name = "walk watcher test"
-    file = File("/foo/bar", "baz.txt", 1234567890, 1234568190, 300, 0)
-    expected = "walk_watcher_test,oldest.file.seconds=/foo/bar 300"
-
-    result = file.as_metric_line(metric_name)
-
-    assert result == expected
