@@ -37,10 +37,23 @@ class WatcherEmitter:
         emitter.file_name = config.metric_name
         return emitter
 
-    def emit(self) -> None:
-        """Emit the metric lines to the configured targets."""
-        self.to_stdout()
-        self.to_file()
+    def emit(self, *, batch_size: int = 500) -> None:
+        """
+        Emit all stored metric lines to the configured targets. Empties the queue.
+
+        Keyword Args:
+            batch_size: The number of lines to emit at a time. Defaults to 500.
+        """
+        count = 0
+        while self._metric_lines:
+            lines = self._get_lines(batch_size)
+
+            self.to_stdout(lines)
+            self.to_file(lines)
+
+            count += len(lines)
+
+        self.logger.info(f"Emitted {count} metric lines.")
 
     def add_line(
         self,
@@ -67,7 +80,7 @@ class WatcherEmitter:
             )
         )
 
-    def _get_lines(self, max_lines: int = 1_000) -> list[str]:
+    def _get_lines(self, max_lines: int) -> list[str]:
         """Build a list of lines to emit, removing them from the emitter."""
         lines: list[str] = []
         while self._metric_lines and len(lines) < max_lines:
@@ -80,33 +93,34 @@ class WatcherEmitter:
 
         return lines
 
-    def to_file(self) -> None:
+    def to_file(self, metric_lines: list[str]) -> None:
         """
-        Emit all added metric lines to a file in line protocol format.
+        Emit metric lines to a file in line protocol format.
 
         Args:
-            filename: The name of the file to write to. If None, a filename
-                will be generated based on the current date.
+            metric_lines: A list of lines to emit.
         """
-        if not self.emit_to_file or not self._metric_lines:
+        if not self.emit_to_file or not metric_lines:
             return
 
         _filename = datetime.now().strftime("%Y%m%d")
         filename = (self.file_name or _filename) + "_metric_lines.txt"
-        count = 0
 
         with open(filename, "a") as file_out:
-            while self._metric_lines:
-                lines = self._get_lines()
-                count += len(lines)
-                file_out.write("\n".join(lines) + "\n")
+            file_out.write("\n".join(metric_lines) + "\n")
 
-        self.logger.info("Emitted %d lines to %s", count, filename)
+        self.logger.debug("Emitted %d lines to %s", len(metric_lines), filename)
 
-    def to_stdout(self) -> None:
-        """Emit all added metric lines to stdout in line protocol format."""
-        if not self.emit_to_stdout or not self._metric_lines:
+    def to_stdout(self, metric_lines: list[str]) -> None:
+        """
+        Emit metric lines to stdout in line protocol format.
+
+        Args:
+            metric_lines: A list of lines to emit.
+        """
+        if not self.emit_to_stdout or not metric_lines:
             return
 
-        while self._metric_lines:
-            print("\n".join(self._get_lines()))
+        print("\n".join(metric_lines))
+
+        self.logger.debug("Emitted %d lines to stdout", len(metric_lines))
