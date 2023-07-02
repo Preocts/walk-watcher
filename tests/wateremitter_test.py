@@ -67,12 +67,13 @@ def test_get_lines_pops_left(emitter: WatcherEmitter) -> None:
 
 
 def test_to_file(emitter: WatcherEmitter) -> None:
-    emitter.emit_to_file = True
     try:
         fd, temp_file_name = tempfile.mkstemp()
+        emitter.emit_to_file = True
+        emitter.file_name = temp_file_name
         expected_file = f"{temp_file_name}_metric_lines.txt"
         os.close(fd)  # close for Windows
-        emitter.to_file(temp_file_name)
+        emitter.to_file()
         with open(expected_file) as temp_file:
             results = temp_file.read()
 
@@ -86,12 +87,13 @@ def test_to_file(emitter: WatcherEmitter) -> None:
 
 
 def test_to_file_early_exit(emitter: WatcherEmitter) -> None:
-    emitter.emit_to_file = False
     try:
         fd, temp_file_name = tempfile.mkstemp()
+        emitter.emit_to_file = False
+        emitter.file_name = temp_file_name
         expected_file = f"{temp_file_name}_metric_lines.txt"
         os.close(fd)  # close for Windows
-        emitter.to_file(temp_file_name)
+        emitter.to_file()
 
         assert not os.path.exists(expected_file)
 

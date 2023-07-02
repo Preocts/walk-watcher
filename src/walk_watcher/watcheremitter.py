@@ -80,7 +80,7 @@ class WatcherEmitter:
 
         return lines
 
-    def to_file(self, filename: str | None = None) -> None:
+    def to_file(self) -> None:
         """
         Emit all added metric lines to a file in line protocol format.
 
@@ -92,7 +92,7 @@ class WatcherEmitter:
             return
 
         _filename = datetime.now().strftime("%Y%m%d")
-        filename = (filename or _filename) + "_metric_lines.txt"
+        filename = (self.file_name or _filename) + "_metric_lines.txt"
         count = 0
 
         with open(filename, "a") as file_out:
