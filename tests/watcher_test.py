@@ -107,3 +107,19 @@ def test_emit_calls_emitter(watcher: Watcher) -> None:
         watcher.emit()
 
     assert mock_emit.call_count == 1
+
+
+@pytest.mark.parametrize(
+    "path, expected",
+    [
+        ("", ""),
+        ("foo?", "foo"),
+        ("foo/bar", "foo/bar"),
+        ("foo/bar/baz", "foo/bar/baz"),
+        ("Foo/Bar/Baz", "Foo/Bar/Baz"),
+        ("Foo\\Bar\\Baz", "Foo\\\\Bar\\\\Baz"),
+        ("Foo Bar baz", "Foo_Bar_baz"),
+    ],
+)
+def test_sanitize_directory_path(path: str, expected: str) -> None:
+    assert Watcher._sanitize_directory_path(path) == expected

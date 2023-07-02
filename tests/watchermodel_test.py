@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from datetime import datetime
 
-import pytest
-
 from walk_watcher.watchermodel import Directory
 from walk_watcher.watchermodel import File
 
@@ -14,22 +12,6 @@ def test_model_directory_str() -> None:
     expected = f"/foo/bar (42 files, last seen {expected_ts})"
 
     assert str(directory) == expected
-
-
-@pytest.mark.parametrize(
-    "path, expected",
-    [
-        ("", ""),
-        ("foo?", "foo"),
-        ("foo/bar", "foo/bar"),
-        ("foo/bar/baz", "foo/bar/baz"),
-        ("Foo/Bar/Baz", "Foo/Bar/Baz"),
-        ("Foo\\Bar\\Baz", "Foo\\\\Bar\\\\Baz"),
-        ("Foo Bar baz", "Foo_Bar_baz"),
-    ],
-)
-def test_sanitize_directory_path(path: str, expected: str) -> None:
-    assert Directory._sanitize_directory_path(path) == expected
 
 
 def test_model_file_str() -> None:

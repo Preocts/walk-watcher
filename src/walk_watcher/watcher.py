@@ -72,7 +72,8 @@ class Watcher:
         """Add the directory lines to the emitter."""
         directories = datastore.get_directory_rows()
         for directory in directories:
-            dimension = f"directory.file.count={directory.root}"
+            root = self._sanitize_directory_path(directory.root)
+            dimension = f"directory.file.count={root}"
             self._emitter.add_line(
                 metric_name=self._config.metric_name,
                 dimensions=[self._config.dimensions, dimension],
@@ -83,7 +84,8 @@ class Watcher:
         """Add the file lines to the emitter."""
         files = datastore.get_oldest_files()
         for file in files:
-            dimension = f"oldest.file.seconds={file.root}"
+            root = self._sanitize_directory_path(file.root)
+            dimension = f"oldest.file.seconds={root}"
             self._emitter.add_line(
                 metric_name=self._config.metric_name,
                 dimensions=[self._config.dimensions, dimension],
@@ -137,3 +139,18 @@ class Watcher:
         self.logger.debug("Found %s files", len(files))
 
         return directories, files
+
+    @staticmethod
+    def _sanitize_directory_path(path: str) -> str:
+        """
+        Remove invalid characters from a directory path and double backslashes.
+
+        Args:
+            path: The directory path to sanitize.
+
+        Returns:
+            The sanitized directory path.
+        """
+        path = re.sub(r"\s+", "_", path)
+        path = path.replace("\\", "\\\\")
+        return re.sub(r"[^a-zA-Z0-9\/\\_:]", "", path)
