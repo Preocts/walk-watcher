@@ -8,6 +8,7 @@ NEW_CONFIG = """\
 [system]
 # config_name should be unique for each configuration file.
 config_name = {filename}
+# :memory: can be used here to use an in-memory database.
 database_path = {filename}
 max_is_running_seconds = 60
 oldest_directory_row_days = 14
