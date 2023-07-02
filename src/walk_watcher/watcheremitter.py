@@ -26,6 +26,7 @@ class WatcherEmitter:
         self._metric_lines: deque[Metric] = deque()
         self.emit_to_stdout = False
         self.emit_to_file = False
+        self.file_name: str | None = None
 
     @classmethod
     def from_config(cls, config: WatcherConfig) -> WatcherEmitter:
@@ -33,15 +34,13 @@ class WatcherEmitter:
         emitter = cls()
         emitter.emit_to_stdout = config.emit_stdout
         emitter.emit_to_file = config.emit_file
+        emitter.file_name = config.metric_name
         return emitter
 
-    def emit(self, metric_name: str | None = None) -> None:
+    def emit(self) -> None:
         """Emit the metric lines to the configured targets."""
-        if self.emit_to_stdout:
-            self.to_stdout()
-
-        if self.emit_to_file:
-            self.to_file(metric_name)
+        self.to_stdout()
+        self.to_file()
 
     def add_line(
         self,
@@ -89,6 +88,9 @@ class WatcherEmitter:
             filename: The name of the file to write to. If None, a filename
                 will be generated based on the current date.
         """
+        if not self.emit_to_file or not self._metric_lines:
+            return
+
         _filename = datetime.now().strftime("%Y%m%d")
         filename = (filename or _filename) + "_metric_lines.txt"
         count = 0
@@ -103,5 +105,8 @@ class WatcherEmitter:
 
     def to_stdout(self) -> None:
         """Emit all added metric lines to stdout in line protocol format."""
+        if not self.emit_to_stdout or not self._metric_lines:
+            return
+
         while self._metric_lines:
             print("\n".join(self._get_lines()))
