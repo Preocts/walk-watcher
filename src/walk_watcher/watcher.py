@@ -7,6 +7,7 @@ import time
 from datetime import datetime
 
 from .watcherconfig import WatcherConfig
+from .watcheremitter import WatcherEmitter
 from .watchermodel import Directory
 from .watchermodel import File
 from .watcherstore import WatcherStore
@@ -31,6 +32,7 @@ class Watcher:
         """
         self._config = config
         self._store = WatcherStore.from_config(config)
+        self._emitter = WatcherEmitter.from_config(config)
 
     def run(self) -> None:
         """Run the watcher, walking the directory and saving the results."""
@@ -48,10 +50,45 @@ class Watcher:
             directories = self._filter_directories(directories)
             data_store.save_directories(directories)
 
+            self._add_directory_lines(data_store)
+            self._add_file_lines(data_store)
+
         toc = time.perf_counter()
         self.logger.info("Watcher finished in %s seconds", toc - tic)
         self.logger.info("Detected %s directories", len(directories))
         self.logger.info("Detected %s files", len(files))
+
+    def emit(self) -> None:
+        """Emit the current metrics of the watcher to defined outputs."""
+        self.logger.info("Emitting metrics...")
+        tic = time.perf_counter()
+
+        self._emitter.emit()
+
+        toc = time.perf_counter()
+        self.logger.info("Emitting finished in %s seconds", toc - tic)
+
+    def _add_directory_lines(self, datastore: WatcherStore) -> None:
+        """Add the directory lines to the emitter."""
+        directories = datastore.get_directory_rows()
+        for directory in directories:
+            dimension = f"directory.file.count={directory.root}"
+            self._emitter.add_line(
+                metric_name=self._config.metric_name,
+                dimensions=[self._config.dimensions, dimension],
+                guage_values=[str(directory.file_count)],
+            )
+
+    def _add_file_lines(self, datastore: WatcherStore) -> None:
+        """Add the file lines to the emitter."""
+        files = datastore.get_oldest_files()
+        for file in files:
+            dimension = f"oldest.file.seconds={file.root}"
+            self._emitter.add_line(
+                metric_name=self._config.metric_name,
+                dimensions=[self._config.dimensions, dimension],
+                guage_values=[str(file.age_seconds)],
+            )
 
     def _filter_files(self, files: list[File]) -> list[File]:
         """Filter the given files based on the config."""
