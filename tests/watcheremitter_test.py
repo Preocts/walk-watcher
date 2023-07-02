@@ -18,7 +18,7 @@ def mock_config() -> MagicMock:
     config = MagicMock()
     config.emit_stdout = True
     config.emit_file = True
-    config.metric_name = "test"
+    config.config_name = "test"
     return config
 
 
@@ -74,7 +74,7 @@ def test_to_file(emitter: WatcherEmitter) -> None:
     try:
         fd, temp_file_name = tempfile.mkstemp()
         emitter.emit_to_file = True
-        emitter.file_name = temp_file_name
+        emitter.config_name = temp_file_name
         expected_file = f"{temp_file_name}_metric_lines.txt"
         os.close(fd)  # close for Windows
 
@@ -96,7 +96,7 @@ def test_to_file_early_exit(emitter: WatcherEmitter) -> None:
     try:
         fd, temp_file_name = tempfile.mkstemp()
         emitter.emit_to_file = False
-        emitter.file_name = temp_file_name
+        emitter.config_name = temp_file_name
         expected_file = f"{temp_file_name}_metric_lines.txt"
         os.close(fd)  # close for Windows
 

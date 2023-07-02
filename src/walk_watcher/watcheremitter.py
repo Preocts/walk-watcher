@@ -26,7 +26,7 @@ class WatcherEmitter:
         self._metric_lines: deque[Metric] = deque()
         self.emit_to_stdout = False
         self.emit_to_file = False
-        self.file_name: str | None = None
+        self.config_name: str | None = None
 
     @classmethod
     def from_config(cls, config: WatcherConfig) -> WatcherEmitter:
@@ -34,7 +34,7 @@ class WatcherEmitter:
         emitter = cls()
         emitter.emit_to_stdout = config.emit_stdout
         emitter.emit_to_file = config.emit_file
-        emitter.file_name = config.metric_name
+        emitter.config_name = config.config_name
         return emitter
 
     def emit(self, *, batch_size: int = 500) -> None:
@@ -104,7 +104,7 @@ class WatcherEmitter:
             return
 
         _filename = datetime.now().strftime("%Y%m%d")
-        filename = (self.file_name or _filename) + "_metric_lines.txt"
+        filename = (self.config_name or _filename) + "_metric_lines.txt"
 
         with open(filename, "a") as file_out:
             file_out.write("\n".join(metric_lines) + "\n")
