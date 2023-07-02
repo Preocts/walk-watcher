@@ -1,5 +1,7 @@
 [flake8]
+# E501 - Line length violations that aren't auto-fixed are not worth stopping a commit
+# E203 - Allow black to format slice indices
 extend-ignore =
-    W503
+    E501
     E203
 max-line-length = 88

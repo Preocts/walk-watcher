@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from datetime import datetime
 
-import pytest
-
 from walk_watcher.watchermodel import Directory
 from walk_watcher.watchermodel import File
 
@@ -16,32 +14,6 @@ def test_model_directory_str() -> None:
     assert str(directory) == expected
 
 
-def test_model_directory_as_metric_line() -> None:
-    metric_name = "walk watcher test"
-    directory = Directory("/foo/bar", 1234567890, 42)
-    expected = "walk_watcher_test,directory.file.count=/foo/bar 42"
-
-    result = directory.as_metric_line(metric_name)
-
-    assert result == expected
-
-
-@pytest.mark.parametrize(
-    "path, expected",
-    [
-        ("", ""),
-        ("foo?", "foo"),
-        ("foo/bar", "foo/bar"),
-        ("foo/bar/baz", "foo/bar/baz"),
-        ("Foo/Bar/Baz", "Foo/Bar/Baz"),
-        ("Foo\\Bar\\Baz", "Foo\\\\Bar\\\\Baz"),
-        ("Foo Bar baz", "Foo_Bar_baz"),
-    ],
-)
-def test_sanitize_directory_path(path: str, expected: str) -> None:
-    assert Directory._sanitize_directory_path(path) == expected
-
-
 def test_model_file_str() -> None:
     file_present = File("/foo/bar", "baz.txt", 1234568190, 1234567890, 300, 0)
     file_removed = File("/foo/bar", "baz.txt", 1234568190, 1234567890, 300, 1)
@@ -52,13 +24,3 @@ def test_model_file_str() -> None:
 
     assert str(file_present) == f"{expected} {expected_preset}"
     assert str(file_removed) == f"{expected} {expected_removed}"
-
-
-def test_model_file_as_metric_line() -> None:
-    metric_name = "walk watcher test"
-    file = File("/foo/bar", "baz.txt", 1234567890, 1234568190, 300, 0)
-    expected = "walk_watcher_test,oldest.file.seconds=/foo/bar 300"
-
-    result = file.as_metric_line(metric_name)
-
-    assert result == expected

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import dataclasses
-import re
 from datetime import datetime
 
 
@@ -17,26 +16,6 @@ class Directory:
         """Return a string representation of the directory."""
         lastseen = datetime.fromtimestamp(self.last_seen).strftime("%Y-%m-%d %H:%M:%S")
         return f"{self.root} ({self.file_count} files, last seen {lastseen})"
-
-    def as_metric_line(self, metric_name: str) -> str:
-        """Return a string representation of the directory in metric format."""
-        metric_name = re.sub(r"\s+", "_", metric_name)
-        return f"{metric_name},directory.file.count={self.root} {self.file_count}"
-
-    @staticmethod
-    def _sanitize_directory_path(path: str) -> str:
-        """
-        Remove invalid characters from a directory path and double backslashes.
-
-        Args:
-            path: The directory path to sanitize.
-
-        Returns:
-            The sanitized directory path.
-        """
-        path = re.sub(r"\s+", "_", path)
-        path = path.replace("\\", "\\\\")
-        return re.sub(r"[^a-zA-Z0-9\/\\_:]", "", path)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -59,9 +38,3 @@ class File:
             f" ({self.age_seconds} seconds old, last seen {lastseen})"
             f" {'(removed)' if self.removed else '(present)'}"
         )
-
-    def as_metric_line(self, metric_name: str) -> str:
-        """Return a string representation of the file in metric format."""
-        metric_name = re.sub(r"\s+", "_", metric_name)
-
-        return f"{metric_name},oldest.file.seconds={self.root} {self.age_seconds}"

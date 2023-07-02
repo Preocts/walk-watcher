@@ -34,6 +34,9 @@ def test_watcherconfig_loads_test_fixture_completely() -> None:
 
     assert config.dimensions == "config.file.name=:memory:,config.type=testing"
 
+    assert config.emit_file is True
+    assert config.emit_stdout is True
+
 
 def test_dimensions_with_no_section() -> None:
     config = WatcherConfig(CONFIG_PATH)

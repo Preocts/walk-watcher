@@ -29,6 +29,11 @@ remove_prefix = .
 exclude_directories = ^\\..*$
 exclude_files = ^\\..*$
 
+[emit]
+# Emit metrics to the following destinations.
+stdout = false
+file = true
+
     """
 
 
@@ -103,6 +108,16 @@ class WatcherConfig:
             return ""
         dimensions = self._config["dimensions"]
         return ",".join(f"{key}={value}" for key, value in dimensions.items())
+
+    @property
+    def emit_stdout(self) -> bool:
+        """Return whether to emit metrics to stdout."""
+        return self._config.getboolean("emit", "stdout", fallback=False)
+
+    @property
+    def emit_file(self) -> bool:
+        """Return whether to emit metrics to a file."""
+        return self._config.getboolean("emit", "file", fallback=False)
 
 
 def write_new_config(filename: str) -> None:

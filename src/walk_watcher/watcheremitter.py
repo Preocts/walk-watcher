@@ -5,6 +5,8 @@ import logging
 from collections import deque
 from datetime import datetime
 
+from .watcherconfig import WatcherConfig
+
 
 @dataclasses.dataclass(frozen=True)
 class Metric:
@@ -22,6 +24,24 @@ class WatcherEmitter:
     def __init__(self) -> None:
         """Initialize the emitter."""
         self._metric_lines: deque[Metric] = deque()
+        self.emit_to_stdout = False
+        self.emit_to_file = False
+
+    @classmethod
+    def from_config(cls, config: WatcherConfig) -> WatcherEmitter:
+        """Initialize the emitter from a config."""
+        emitter = cls()
+        emitter.emit_to_stdout = config.emit_stdout
+        emitter.emit_to_file = config.emit_file
+        return emitter
+
+    def emit(self, metric_name: str | None = None) -> None:
+        """Emit the metric lines to the configured targets."""
+        if self.emit_to_stdout:
+            self.to_stdout()
+
+        if self.emit_to_file:
+            self.to_file(metric_name)
 
     def add_line(
         self,
@@ -69,8 +89,8 @@ class WatcherEmitter:
             filename: The name of the file to write to. If None, a filename
                 will be generated based on the current date.
         """
-        _filename = datetime.now().strftime("%Y%m%d") + "_metric_lines.txt"
-        filename = filename or _filename
+        _filename = datetime.now().strftime("%Y%m%d")
+        filename = (filename or _filename) + "_metric_lines.txt"
         count = 0
 
         with open(filename, "a") as file_out:
