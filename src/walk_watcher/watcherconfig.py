@@ -8,11 +8,23 @@ NEW_CONFIG = """\
 [system]
 # config_name should be unique for each configuration file.
 config_name = {filename}
+
 # :memory: can be used here to use an in-memory database.
 database_path = {filename}
-max_is_running_seconds = 60
 oldest_directory_row_days = 14
 oldest_file_row_days = 14
+
+# Controls how long the is_running flag is valid for.
+max_is_running_seconds = 60
+
+# Controls how many lines are emitted in a single batch.
+max_emit_line_count = 500
+
+[intervals]
+# Intervals are only used when running with the `--loop` flag.
+# Intervals are in seconds.
+collect_interval = 10
+emit_interval = 60
 
 [dimensions]
 # Dimensions are optional and can be used to add additional context to the metric.
@@ -23,21 +35,20 @@ config.file.name = {filename}
 [watcher]
 # Metric names cannot contain spaces or commas.
 metric_name = file.watcher
-root_directory = .
-remove_prefix = .
+root_directory =
+remove_prefix =
 
 # Exclude directories and files from being watched.
 # The following are regular expressions and are matched against the full path.
 # Multiline values are combined into a single regular expression.
-exclude_directories = ^\\..*$
-exclude_files = ^\\..*$
+exclude_directories =
+exclude_files =
 
 [emit]
 # Emit metrics to the following destinations.
 stdout = false
 file = true
-
-    """
+"""
 
 
 class WatcherConfig:
@@ -79,6 +90,21 @@ class WatcherConfig:
     def oldest_file_row_days(self) -> int:
         """Return the maximum age of a file row in days."""
         return self._config.getint("system", "oldest_file_row_days", fallback=30)
+
+    @property
+    def max_emit_line_count(self) -> int:
+        """Return the maximum number of lines to emit at once."""
+        return self._config.getint("system", "max_emit_line_count", fallback=500)
+
+    @property
+    def collect_interval(self) -> int:
+        """Return the interval to collect metrics at."""
+        return self._config.getint("intervals", "collect_interval", fallback=10)
+
+    @property
+    def emit_interval(self) -> int:
+        """Return the interval to emit metrics at."""
+        return self._config.getint("intervals", "emit_interval", fallback=60)
 
     @property
     def metric_name(self) -> str:
