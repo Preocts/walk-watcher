@@ -57,8 +57,12 @@ class Watcher:
 
                 time.sleep(0.1)
 
-        except (KeyboardInterrupt, Exception):
+        except KeyboardInterrupt:
             self.logger.info("Watcher stopped")
+
+        except Exception as error:
+            self.logger.exception("Watcher stopped due to an error: %s", error)
+            raise error
 
     def walk(self) -> None:
         """Walk the given directory and store the results."""
