@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import dataclasses
+import http.client
 import logging
 from collections import deque
 from datetime import datetime
@@ -26,6 +27,7 @@ class WatcherEmitter:
         self._metric_lines: deque[Metric] = deque()
         self.emit_to_stdout = False
         self.emit_to_file = False
+        self.emit_to_telegraf = False
         self.config_name: str | None = None
 
     @classmethod
@@ -34,6 +36,7 @@ class WatcherEmitter:
         emitter = cls()
         emitter.emit_to_stdout = config.emit_stdout
         emitter.emit_to_file = config.emit_file
+        emitter.emit_to_telegraf = config.emit_telegraf
         emitter.config_name = config.config_name
         return emitter
 
@@ -50,6 +53,7 @@ class WatcherEmitter:
 
             self.to_stdout(lines)
             self.to_file(lines)
+            self.to_telegraf(lines)
 
             count += len(lines)
 
@@ -124,3 +128,30 @@ class WatcherEmitter:
         print("\n".join(metric_lines))
 
         self.logger.debug("Emitted %d lines to stdout", len(metric_lines))
+
+    def to_telegraf(self, metric_lines: list[str]) -> None:
+        """
+        Emit metric lines to a telegraf listener at localhost:8080/telegraf.
+
+        Args:
+            metric_lines: A list of lines to emit.
+        """
+        if not self.emit_to_telegraf or not metric_lines:
+            return
+
+        data = "\n".join(metric_lines) + "\n"
+
+        conn = http.client.HTTPConnection("127.0.0.1", 8080)
+        conn.request("POST", "/telegraf", data.encode("utf-8"))
+        response = conn.getresponse()
+
+        if response.status != 204:
+            self.logger.error(
+                "Failed to emit %d lines to telegraf listener: %s",
+                len(metric_lines),
+                response.read(),
+            )
+        else:
+            self.logger.debug(
+                "Emitted %d lines to telegraf listener", len(metric_lines)
+            )

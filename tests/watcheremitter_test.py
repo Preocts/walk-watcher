@@ -8,6 +8,7 @@ from unittest.mock import MagicMock
 from unittest.mock import patch
 
 import pytest
+from pytest import LogCaptureFixture
 
 from walk_watcher.watcheremitter import Metric
 from walk_watcher.watcheremitter import WatcherEmitter
@@ -131,3 +132,35 @@ def test_to_stdout_early_exit(emitter: WatcherEmitter) -> None:
         results = temp_file.getvalue()
 
     assert results == ""
+
+
+def test_to_telegraf(emitter: WatcherEmitter, caplog: LogCaptureFixture) -> None:
+    lines = ["metric.name,key1=test value1=100 1234567890"]
+    emitter.emit_to_telegraf = True
+    with patch("walk_watcher.watcheremitter.http.client.HTTPConnection") as mock_http:
+        mock_http.return_value.getresponse.return_value.status = 204
+        emitter.to_telegraf(lines)
+
+    mock_http.assert_called_once_with("127.0.0.1", 8080)
+    mock_http.return_value.request.assert_called_once_with(
+        "POST",
+        "/telegraf",
+        b"metric.name,key1=test value1=100 1234567890\n",
+    )
+    assert "Failed to emit" not in caplog.text
+
+
+def test_to_telegraf_failed(emitter: WatcherEmitter, caplog: LogCaptureFixture) -> None:
+    lines = ["metric.name,key1=test value1=100 1234567890"]
+    emitter.emit_to_telegraf = True
+    with patch("walk_watcher.watcheremitter.http.client.HTTPConnection") as mock_http:
+        mock_http.return_value.getresponse.return_value.status = 400
+        emitter.to_telegraf(lines)
+
+    mock_http.assert_called_once_with("127.0.0.1", 8080)
+    mock_http.return_value.request.assert_called_once_with(
+        "POST",
+        "/telegraf",
+        b"metric.name,key1=test value1=100 1234567890\n",
+    )
+    assert "Failed to emit" in caplog.text
