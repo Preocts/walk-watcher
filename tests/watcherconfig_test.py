@@ -20,10 +20,16 @@ def test_watcherconfig_raises_on_invalid_config_path() -> None:
 def test_watcherconfig_loads_test_fixture_completely() -> None:
     config = WatcherConfig(CONFIG_PATH)
 
+    assert config.config_name == "test_watcher"
     assert config.database_path == ":memory:"
-    assert config.max_is_running_seconds == 60
     assert config.oldest_directory_row_days == 14
     assert config.oldest_file_row_days == 14
+
+    assert config.max_is_running_seconds == 60
+    assert config.max_emit_line_count == 1000
+
+    assert config.collect_interval == 5
+    assert config.emit_interval == 20
 
     assert config.metric_name == "test_watcher"
     assert config.root_directory == "tests/fixture"

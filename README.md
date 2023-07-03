@@ -7,7 +7,45 @@
 
 # walk-watcher
 
-A monitoring solution when directories and files are used as queues. Tracks the number of files in a directory and the oldest age of a file in the directory.
+A monitoring solution when directories and files are used as queues. Tracks the
+number of files in a directory and the oldest age of a file in the directory.
+
+The emitted metrics are in line protocal format with an interval size of
+seconds. This should be compatible with most ingest agents.
+
+## Supported output
+
+- stdout
+- file target
+
+## Installation
+
+```console
+$ pip install git+https://github.com/Preocts/walk-watcher@0.1.0
+```
+
+## CLI use
+
+```console
+$ walk-watcher --help
+usage: walk-watcher [-h] [--loop] [--debug] [--make-config] config
+
+Watch directories for file count and oldest file age. Emit to configured destinations.
+
+positional arguments:
+  config         The path to the configuration file.
+
+optional arguments:
+  -h, --help     show this help message and exit
+  --loop         Run the watcher in a loop. Default: False (block until exit).
+  --debug        Enable debug logging.
+  --make-config  Create a default configuration file.
+```
+
+1. $ `walk-watcher config-file-name.ini --make-config`
+2. Edit config file to track desired directories
+3. Selected desired emitted outputs
+4. $ `walk-watcher config-file-name.ini [--loop]`
 
 ---
 

@@ -12,4 +12,8 @@ build/
 dist/
 __pycache__/
 .vscode/
+
+# Smoketest files
 smoketest/smoketest_queues/
+smoketest/smoketest.db
+smoketest/smoketest_metric*

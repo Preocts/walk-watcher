@@ -34,8 +34,34 @@ class Watcher:
         self._store = WatcherStore.from_config(config)
         self._emitter = WatcherEmitter.from_config(config)
 
-    def run(self) -> None:
-        """Run the watcher, walking the directory and saving the results."""
+    def run_once(self) -> None:
+        """Run the watcher once."""
+        self.walk()
+        self.emit()
+
+    def run_loop(self) -> None:
+        """Run the watcher untli ctrl-c is pressed. This is blocking."""
+        next_walk = time.time() + self._config.collect_interval
+        next_emit = time.time() + self._config.emit_interval
+
+        self.logger.info("Starting watcher...")
+        try:
+            while True:
+                if time.time() >= next_walk:
+                    self.walk()
+                    next_walk = time.time() + self._config.collect_interval
+
+                if time.time() >= next_emit:
+                    self.emit()
+                    next_emit = time.time() + self._config.emit_interval
+
+                time.sleep(0.1)
+
+        except (KeyboardInterrupt, Exception):
+            self.logger.info("Watcher stopped")
+
+    def walk(self) -> None:
+        """Walk the given directory and store the results."""
         self.logger.info("Running watcher...")
         tic = time.perf_counter()
 
@@ -63,7 +89,7 @@ class Watcher:
         self.logger.info("Emitting metrics...")
         tic = time.perf_counter()
 
-        self._emitter.emit(self._config.metric_name)
+        self._emitter.emit()
 
         toc = time.perf_counter()
         self.logger.info("Emitting finished in %s seconds", toc - tic)

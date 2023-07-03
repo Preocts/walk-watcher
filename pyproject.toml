@@ -44,8 +44,8 @@ homepage = "https://github.com/Preocts/walk-watcher"
 # changelog = ""
 
 # CLI scripts if needed
-# [project.scripts]
-# python-src-example = "walk_watcher.sample:main"
+[project.scripts]
+walk-watcher = "walk_watcher.__main__:main"
 
 # [tool.setuptools.packages.find]
 # where = ["src"]  # ["."] by default

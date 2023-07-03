@@ -18,6 +18,7 @@ def mock_config() -> MagicMock:
     config = MagicMock()
     config.emit_stdout = True
     config.emit_file = True
+    config.config_name = "test"
     return config
 
 
@@ -34,26 +35,13 @@ def emitter() -> WatcherEmitter:
     return emitter
 
 
-def test_emit_skips_false(emitter: WatcherEmitter) -> None:
-    emitter.emit_to_stdout = False
-    emitter.emit_to_file = False
+def test_emit_calls_all_methods(emitter: WatcherEmitter) -> None:
     with patch.object(emitter, "to_stdout") as mock_stdout:
         with patch.object(emitter, "to_file") as mock_file:
-            emitter.emit()
+            emitter.emit(batch_size=1)
 
-    mock_stdout.assert_not_called()
-    mock_file.assert_not_called()
-
-
-def test_emit_calls_all_when_true(emitter: WatcherEmitter) -> None:
-    emitter.emit_to_stdout = True
-    emitter.emit_to_file = True
-    with patch.object(emitter, "to_stdout") as mock_stdout:
-        with patch.object(emitter, "to_file") as mock_file:
-            emitter.emit()
-
-    mock_stdout.assert_called_once()
-    mock_file.assert_called_once()
+    assert mock_stdout.call_count == 2
+    assert mock_file.call_count == 2
 
 
 def test_build_from_config(mock_config: MagicMock) -> None:
@@ -79,11 +67,19 @@ def test_get_lines_pops_left(emitter: WatcherEmitter) -> None:
 
 
 def test_to_file(emitter: WatcherEmitter) -> None:
+    lines = [
+        "metric.name,key1=test value1=100 1234567890",
+        "metric.name,key1=test value1=100 1234567890",
+    ]
     try:
         fd, temp_file_name = tempfile.mkstemp()
+        emitter.emit_to_file = True
+        emitter.config_name = temp_file_name
         expected_file = f"{temp_file_name}_metric_lines.txt"
         os.close(fd)  # close for Windows
-        emitter.to_file(temp_file_name)
+
+        emitter.to_file(lines)
+
         with open(expected_file) as temp_file:
             results = temp_file.read()
 
@@ -96,12 +92,42 @@ def test_to_file(emitter: WatcherEmitter) -> None:
     )
 
 
+def test_to_file_early_exit(emitter: WatcherEmitter) -> None:
+    try:
+        fd, temp_file_name = tempfile.mkstemp()
+        emitter.emit_to_file = False
+        emitter.config_name = temp_file_name
+        expected_file = f"{temp_file_name}_metric_lines.txt"
+        os.close(fd)  # close for Windows
+
+        emitter.to_file(["empty"])
+
+        assert not os.path.exists(expected_file)
+
+    finally:
+        os.remove(temp_file_name)
+
+
 def test_to_stdout(emitter: WatcherEmitter) -> None:
+    lines = [
+        "metric.name,key1=test value1=100 1234567890",
+        "metric.name,key1=test value1=100 1234567890",
+    ]
+    emitter.emit_to_stdout = True
     with redirect_stdout(StringIO()) as temp_file:
-        emitter.to_stdout()
+        emitter.to_stdout(lines)
         results = temp_file.getvalue()
 
     assert results == (
         "metric.name,key1=test value1=100 1234567890\n"
         "metric.name,key1=test value1=100 1234567890\n"
     )
+
+
+def test_to_stdout_early_exit(emitter: WatcherEmitter) -> None:
+    emitter.emit_to_stdout = False
+    with redirect_stdout(StringIO()) as temp_file:
+        emitter.to_stdout(["empty"])
+        results = temp_file.getvalue()
+
+    assert results == ""
