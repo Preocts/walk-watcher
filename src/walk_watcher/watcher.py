@@ -32,7 +32,7 @@ class Watcher:
         """
         self._config = config
         self._store = WatcherStore.from_config(config)
-        self._emitter = WatcherEmitter.from_config(config)
+        self._emitter = WatcherEmitter(config)
 
     def run_once(self) -> None:
         """Run the watcher once."""

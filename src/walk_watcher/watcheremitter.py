@@ -22,23 +22,10 @@ class WatcherEmitter:
 
     logger = logging.getLogger(__name__)
 
-    def __init__(self) -> None:
+    def __init__(self, config: WatcherConfig) -> None:
         """Initialize the emitter."""
+        self._config = config
         self._metric_lines: deque[Metric] = deque()
-        self.emit_to_stdout = False
-        self.emit_to_file = False
-        self.emit_to_telegraf = False
-        self.config_name: str | None = None
-
-    @classmethod
-    def from_config(cls, config: WatcherConfig) -> WatcherEmitter:
-        """Initialize the emitter from a config."""
-        emitter = cls()
-        emitter.emit_to_stdout = config.emit_stdout
-        emitter.emit_to_file = config.emit_file
-        emitter.emit_to_telegraf = config.emit_telegraf
-        emitter.config_name = config.config_name
-        return emitter
 
     def emit(self, *, batch_size: int = 500) -> None:
         """
@@ -104,11 +91,11 @@ class WatcherEmitter:
         Args:
             metric_lines: A list of lines to emit.
         """
-        if not self.emit_to_file or not metric_lines:
+        if not self._config.emit_file or not metric_lines:
             return
 
         _filename = datetime.now().strftime("%Y%m%d")
-        filename = (self.config_name or _filename) + "_metric_lines.txt"
+        filename = (self._config.config_name or _filename) + "_metric_lines.txt"
 
         with open(filename, "a") as file_out:
             file_out.write("\n".join(metric_lines) + "\n")
@@ -122,7 +109,7 @@ class WatcherEmitter:
         Args:
             metric_lines: A list of lines to emit.
         """
-        if not self.emit_to_stdout or not metric_lines:
+        if not self._config.emit_stdout or not metric_lines:
             return
 
         print("\n".join(metric_lines))
@@ -136,13 +123,17 @@ class WatcherEmitter:
         Args:
             metric_lines: A list of lines to emit.
         """
-        if not self.emit_to_telegraf or not metric_lines:
+        if not self._config.emit_telegraf or not metric_lines:
             return
 
         data = "\n".join(metric_lines) + "\n"
 
-        conn = http.client.HTTPConnection("127.0.0.1", 8080)
-        conn.request("POST", "/telegraf", data.encode("utf-8"))
+        conn = http.client.HTTPConnection(
+            host=self._config.telegraf_host,
+            port=self._config.telegraf_port,
+            timeout=3,
+        )
+        conn.request("POST", self._config.telegraf_path, data.encode("utf-8"))
         response = conn.getresponse()
 
         if response.status != 204:
