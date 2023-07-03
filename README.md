@@ -17,6 +17,7 @@ seconds. This should be compatible with most ingest agents.
 
 - stdout
 - file target
+- telegraf agent
 
 ## Installation
 
@@ -47,6 +48,18 @@ optional arguments:
 3. Selected desired emitted outputs
 4. $ `walk-watcher config-file-name.ini [--loop]`
 
+---
+
+## Basic telegraf http listener config
+
+```toml
+# Generic HTTP write listener
+[[inputs.http_listener_v2]]
+  service_address = "127.0.0.1:8080"
+  paths = ["/telegraf"]
+  data_source = "body"
+  data_format = "influx"
+```
 ---
 
 # Local developer installation

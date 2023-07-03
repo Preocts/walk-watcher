@@ -43,6 +43,11 @@ def test_watcherconfig_loads_test_fixture_completely() -> None:
     assert config.emit_file is True
     assert config.emit_stdout is True
 
+    assert config.emit_telegraf is True
+    assert config.telegraf_host == "127.0.0.1"
+    assert config.telegraf_port == 8080
+    assert config.telegraf_path == "/telegraf"
+
 
 def test_dimensions_with_no_section() -> None:
     config = WatcherConfig(CONFIG_PATH)

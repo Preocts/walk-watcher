@@ -32,7 +32,7 @@ class Watcher:
         """
         self._config = config
         self._store = WatcherStore.from_config(config)
-        self._emitter = WatcherEmitter.from_config(config)
+        self._emitter = WatcherEmitter(config)
 
     def run_once(self) -> None:
         """Run the watcher once."""
@@ -103,11 +103,12 @@ class Watcher:
         directories = datastore.get_directory_rows()
         for directory in directories:
             root = self._sanitize_directory_path(directory.root)
-            dimension = f"directory.file.count={root}"
+            dimension = f"root={root}"
+            gauge_value = f"directory.file.count={directory.file_count}"
             self._emitter.add_line(
                 metric_name=self._config.metric_name,
                 dimensions=[self._config.dimensions, dimension],
-                guage_values=[str(directory.file_count)],
+                guage_values=[gauge_value],
             )
 
     def _add_file_lines(self, datastore: WatcherStore) -> None:
@@ -116,10 +117,12 @@ class Watcher:
         for file in files:
             root = self._sanitize_directory_path(file.root)
             dimension = f"oldest.file.seconds={root}"
+            guage_value = f"oldest.file.seconds={file.age_seconds}"
+            dimension = f"root={root}"
             self._emitter.add_line(
                 metric_name=self._config.metric_name,
                 dimensions=[self._config.dimensions, dimension],
-                guage_values=[str(file.age_seconds)],
+                guage_values=[guage_value],
             )
 
     def _filter_files(self, files: list[File]) -> list[File]:
