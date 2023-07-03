@@ -28,8 +28,7 @@ emit_interval = 60
 
 [dimensions]
 # Dimensions are optional and can be used to add additional context to the metric.
-# By default directory file counts use "directory.file.count" as a dimension.
-# By default oldest file age uses "oldest.file.seconds" as a dimension.
+# By default "root=..." is added as a dimension.
 config.file.name = {filename}
 
 [watcher]
