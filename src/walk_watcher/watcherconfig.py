@@ -45,8 +45,15 @@ exclude_files =
 
 [emit]
 # Emit metrics to the following destinations.
-stdout = false
+# Filename will be [config_name]_metric_lines.txt
 file = true
+stdout = false
+
+# Telegraf agent must be running on the following host and port.
+telegraf = false
+telegraf_host = 127.0.0.1
+telegraf_port = 8080
+telegraf_path = /telegraf
 """
 
 
@@ -151,6 +158,26 @@ class WatcherConfig:
     def emit_file(self) -> bool:
         """Return whether to emit metrics to a file."""
         return self._config.getboolean("emit", "file", fallback=False)
+
+    @property
+    def emit_telegraf(self) -> bool:
+        """Return whether to emit metrics to a telegraf listener."""
+        return self._config.getboolean("emit", "telegraf", fallback=False)
+
+    @property
+    def telegraf_host(self) -> str:
+        """Return the host to send telegraf metrics to."""
+        return self._config.get("emit", "telegraf_host", fallback="127.0.0.1")
+
+    @property
+    def telegraf_port(self) -> int:
+        """Return the port to send telegraf metrics to."""
+        return self._config.getint("emit", "telegraf_port", fallback=8080)
+
+    @property
+    def telegraf_path(self) -> str:
+        """Return the path to send telegraf metrics to."""
+        return self._config.get("emit", "telegraf_path", fallback="/telegraf")
 
 
 def write_new_config(filename: str) -> None:
