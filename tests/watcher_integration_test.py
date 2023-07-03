@@ -10,7 +10,7 @@ def test_integration_against_fixture_directory() -> None:
     config = WatcherConfig(CONFIG_FILE)
     watcher = Watcher(config)
 
-    watcher.run()
+    watcher.walk()
 
     cursor = watcher._store._connection.cursor()
     cursor.execute("SELECT COUNT(*) FROM directories")

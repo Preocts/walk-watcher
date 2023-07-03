@@ -23,6 +23,8 @@ def watcher() -> Watcher:
         remove_prefix="tests/",
         exclude_file_pattern="file01",
         exclude_directory_pattern=r"directory02|fixture\/$",
+        collect_interval=10,
+        emit_interval=10,
     )
     return Watcher(config)
 
@@ -123,3 +125,42 @@ def test_emit_calls_emitter(watcher: Watcher) -> None:
 )
 def test_sanitize_directory_path(path: str, expected: str) -> None:
     assert Watcher._sanitize_directory_path(path) == expected
+
+
+def test_run_once(watcher: Watcher) -> None:
+    with patch.object(watcher, "walk") as mock_walk:
+        with patch.object(watcher, "emit") as mock_emit:
+            watcher.run_once()
+
+    assert mock_walk.call_count == 1
+    assert mock_emit.call_count == 1
+
+
+def test_run_loop_waits_for_interval(watcher: Watcher) -> None:
+    with patch.object(watcher, "walk") as mock_walk:
+        with patch.object(watcher, "emit") as mock_emit:
+            with patch("time.sleep") as mock_sleep:
+                mock_sleep.side_effect = KeyboardInterrupt
+
+                watcher.run_loop()
+
+    assert mock_walk.call_count == 0
+    assert mock_emit.call_count == 0
+
+
+def test_run_loop_with_no_interval() -> None:
+    config = MagicMock(
+        database_path=":memory:",
+        collect_interval=-1,
+        emit_interval=-1,
+    )
+    watcher = Watcher(config)
+    with patch.object(watcher, "walk") as mock_walk:
+        with patch.object(watcher, "emit") as mock_emit:
+            with patch("time.sleep") as mock_sleep:
+                mock_sleep.side_effect = KeyboardInterrupt
+
+                watcher.run_loop()
+
+    assert mock_walk.call_count == 1
+    assert mock_emit.call_count == 1
