@@ -45,7 +45,7 @@ exclude_files =
 
 [emit]
 # Emit metrics to the following destinations.
-# Filename will be [config_name]_metric_lines.txt
+# Filename will be <config_name>_<YYmmdd>_metric_lines.txt
 file = true
 stdout = false
 

@@ -22,8 +22,10 @@ seconds. This should be compatible with most ingest agents.
 ## Installation
 
 ```console
-$ pip install git+https://github.com/Preocts/walk-watcher@0.1.0
+$ pip install git+https://github.com/Preocts/walk-watcher@x.x.x
 ```
+
+*replace `@x.x.x` with the desired tag version or `@main` for latest (unstable)*
 
 ## CLI use
 
@@ -50,16 +52,56 @@ optional arguments:
 
 ---
 
-## Basic telegraf http listener config
+## Configuration
 
-```toml
-# Generic HTTP write listener
-[[inputs.http_listener_v2]]
-  service_address = "127.0.0.1:8080"
-  paths = ["/telegraf"]
-  data_source = "body"
-  data_format = "influx"
-```
+### \[system\]
+
+| key                         | value                                                                                                             |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `config_name`               | A unique name for the configuration                                                                               |
+| `database_path`             | Name and path of the sqlite3 database file. Used for file age tracking. Set to `:memory:` for in-memory database. |
+| `oldest_directory_row_days` | Rows in the directory table are discarded after N days                                                            |
+| `oldest_file_row_days`      | Rows in the file table are discarded after N days                                                                 |
+| `max_is_running_seconds`    | Time before the database lock expires. Prevents jobs from attempting to access the sqlite3 simultaneously.        |
+| `max_emit_line_count`       | Maximum number of metric lines emitted in a single batch.                                                         |
+
+### \[intervals\]
+
+| key                | value                                                                                             |
+| ------------------ | ------------------------------------------------------------------------------------------------- |
+| `collect_interval` | Number of seconds between collecting meterics (`--loop` mode only)                                |
+| `emit_interval`    | Number of seconds between emitting meterics. All cached metrics are emitted. (`--loop` mode only) |
+
+### \[dimensions\]
+
+| key                   | value             |
+| --------------------- | ----------------- |
+| `some.dimension.name` | some.static.value |
+
+Optional, additional dimensions to add in the metric line. Added as `key=value`.
+Spaces are not permitted.
+
+### \[watcher\]
+
+| key                   | value                                                                                                                           |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `metric_name`         | Name of the metric being emitted                                                                                                |
+| `root_directory`      | Location of the directory to scan for files                                                                                     |
+| `remove_prefix`       | Removes defined prefix from the `root`. Example, setting as `/home/process` would transform `/home/process/queues` to `/queues` |
+| `exclude_directories` | regex expression of directories to exclude from walking                                                                         |
+| `exclude_files`       | regex expression of files to exclude from tracking                                                                              |
+
+### \[emit\]
+
+| key             | value                                                                            |
+| --------------- | -------------------------------------------------------------------------------- |
+| `file`          | When true metrics lines are emitted to `<config_name>_<YYmmdd>_metric_lines.txt` |
+| `stdout`        | When true metric lines are emitted to standard out (console)                     |
+| `telegraf`      | When true metric lines are emitted to a local telegraf agent                     |
+| `telegraf_host` | defaults to `127.0.0.1`                                                          |
+| `telegraf_port` | defaults to `8080`                                                               |
+| `telegraf_path` | defaults to `/telegraf`                                                          |
+
 ---
 
 # Local developer installation
