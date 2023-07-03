@@ -164,3 +164,13 @@ def test_run_loop_with_no_interval() -> None:
 
     assert mock_walk.call_count == 1
     assert mock_emit.call_count == 1
+
+
+def test_run_loop_bubbles_unexpected_exceptions(watcher: Watcher) -> None:
+    with patch.object(watcher, "walk"):
+        with patch.object(watcher, "emit"):
+            with patch("time.sleep") as mock_sleep:
+                mock_sleep.side_effect = ValueError("Unexpected error")
+
+                with pytest.raises(ValueError, match="Unexpected error"):
+                    watcher.run_loop()
