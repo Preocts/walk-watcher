@@ -35,3 +35,13 @@ def test_main_loop():
 
     assert result == 0
     assert mock_watcher.call_count == 1
+
+
+def test_main_create_config():
+    cli_args = ["tests/new_test_config.ini", "--make-config"]
+
+    with patch("walk_watcher.__main__.write_new_config") as mock_watcher:
+        result = __main__.main(cli_args=cli_args)
+
+    assert result == 0
+    mock_watcher.assert_called_once_with("tests/new_test_config.ini")

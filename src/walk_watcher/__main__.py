@@ -5,6 +5,7 @@ import logging
 
 from . import Watcher
 from . import WatcherConfig
+from .watcherconfig import write_new_config
 
 
 def parse_args(args: list[str] | None = None) -> argparse.Namespace:
@@ -29,12 +30,22 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
         default=False,
         action="store_true",
     )
+    parser.add_argument(
+        "--make-config",
+        help="Create a default configuration file.",
+        default=False,
+        action="store_true",
+    )
     return parser.parse_args(args)
 
 
 def main(*, cli_args: list[str] | None = None) -> int:
     """Main entry point."""
     args = parse_args(cli_args)
+
+    if args.make_config:
+        write_new_config(args.config)
+        return 0
 
     logging.basicConfig(
         level=logging.DEBUG if args.debug else logging.INFO,
