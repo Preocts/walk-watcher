@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime
 import os
 import tempfile
 from contextlib import redirect_stdout
@@ -82,7 +83,8 @@ def test_to_file(mock_config_true: MagicMock) -> None:
     try:
         fd, temp_file_name = tempfile.mkstemp()
         os.close(fd)  # close for Windows
-        expected_file = f"{temp_file_name}_metric_lines.txt"
+        date = datetime.datetime.now().strftime("%Y%m%d")
+        expected_file = f"{temp_file_name}_{date}_metric_lines.txt"
         mock_config_true.config_name = temp_file_name
         emitter = WatcherEmitter(mock_config_true)
 
@@ -93,6 +95,7 @@ def test_to_file(mock_config_true: MagicMock) -> None:
 
     finally:
         os.remove(temp_file_name)
+        os.remove(expected_file)
 
     assert results == (
         "metric.name,key1=test value1=100 1234567890\n"

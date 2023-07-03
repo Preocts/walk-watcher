@@ -90,12 +90,14 @@ class WatcherEmitter:
 
         Args:
             metric_lines: A list of lines to emit.
+
+        Output:
+            A file named <config_name>_<date>_metric_lines.txt
         """
         if not self._config.emit_file or not metric_lines:
             return
-
-        _filename = datetime.now().strftime("%Y%m%d")
-        filename = (self._config.config_name or _filename) + "_metric_lines.txt"
+        date = datetime.now().strftime("%Y%m%d")
+        filename = f"{self._config.config_name}_{date}_metric_lines.txt"
 
         with open(filename, "a") as file_out:
             file_out.write("\n".join(metric_lines) + "\n")
