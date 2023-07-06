@@ -3,6 +3,7 @@ from __future__ import annotations
 import dataclasses
 import http.client
 import logging
+import re
 from collections import deque
 from datetime import datetime
 
@@ -71,6 +72,8 @@ class WatcherEmitter:
             )
         )
 
+    # smoketest_watcher,root=smoketest_queues/initial_documents_stage3 directory.file.count=0 1688606332
+    # directory.file.count,root=smoketest_queues/initial_documents_stage3 0 1688606332000
     def _get_lines(self, max_lines: int) -> list[str]:
         """Build a list of lines to emit, removing them from the emitter."""
         lines: list[str] = []
@@ -128,17 +131,59 @@ class WatcherEmitter:
         if not self._config.emit_telegraf or not metric_lines:
             return
 
-        data = "\n".join(metric_lines) + "\n"
-
-        conn = http.client.HTTPConnection(
+        self._emit_lines(
+            metric_lines=metric_lines,
             host=self._config.telegraf_host,
             port=self._config.telegraf_port,
+            path=self._config.telegraf_path,
+            valid_status_codes=[204],
+        )
+
+    def to_oneagent(self, metric_lines: list[str]) -> None:
+        """
+        Emit metric lines to a Dynatrace OneAgent.
+
+        Args:
+            metric_lines: A list of lines to emit.
+        """
+        if not self._config.emit_oneagent or not metric_lines:
+            return
+
+        line_pattern = re.compile(r"[^,]+,([^\s]+)\s([^=]+)=(\d+)\s(\d+)")
+
+        dt_lines = [line_pattern.sub(r"\2,\1 \3 \4", line) for line in metric_lines]
+
+        self._emit_lines(
+            metric_lines=dt_lines,
+            host=self._config.oneagent_host,
+            port=self._config.oneagent_port,
+            path=self._config.oneagent_path,
+            valid_status_codes=[202],
+        )
+
+    def _emit_lines(
+        self,
+        metric_lines: list[str],
+        host: str,
+        port: int,
+        path: str,
+        valid_status_codes: list[int],
+    ) -> None:
+        """Emit metric lines to a host."""
+        if not metric_lines:
+            return None
+
+        payload = "\n".join(metric_lines) + "\n"
+
+        conn = http.client.HTTPConnection(
+            host=host,
+            port=port,
             timeout=3,
         )
-        conn.request("POST", self._config.telegraf_path, data.encode("utf-8"))
-        response = conn.getresponse()
+        conn.request("POST", path, payload.encode("utf-8"))
 
-        if response.status != 204:
+        response = conn.getresponse()
+        if response.status not in valid_status_codes:
             self.logger.error(
                 "Failed to emit %d lines to telegraf listener: %s",
                 len(metric_lines),
