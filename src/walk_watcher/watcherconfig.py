@@ -35,7 +35,6 @@ config.file.name = {filename}
 # Metric names cannot contain spaces or commas.
 metric_name = file.watcher
 root_directories =
-remove_prefix =
 
 # Exclude directories and files from being watched.
 # The following are regular expressions and are matched against the full path.
@@ -123,11 +122,6 @@ class WatcherConfig:
         config_line = self._config.get("watcher", "root_directories")
         lines = [line.strip() for line in config_line.split("\n") if line.strip()]
         return lines
-
-    @property
-    def remove_prefix(self) -> str | None:
-        """Return the prefix to remove from the root directory when reporting."""
-        return self._config.get("watcher", "remove_prefix", fallback=None)
 
     @property
     def exclude_directory_pattern(self) -> str | None:

@@ -29,25 +29,7 @@ def watcher() -> Watcher:
     return Watcher(config)
 
 
-def test_walk_directory_strip_root(watcher: Watcher) -> None:
-    cwd = os.getcwd()
-    root = os.path.join(cwd, "tests/fixture")
-
-    with patch.object(watcher._config, "root_directory", root):
-        with patch.object(watcher._config, "remove_prefix", cwd):
-            all_directories, all_files = watcher._walk_directories()
-
-    assert len(all_directories) == 3
-    assert len(all_files) == 3
-
-    for directory in all_directories:
-        assert not directory.root.startswith(root)
-
-    for file in all_files:
-        assert not file.root.startswith(root)
-
-
-def test_walk_directory_keep_root(watcher: Watcher) -> None:
+def test_walk_directory(watcher: Watcher) -> None:
     cwd = os.getcwd()
     root = os.path.join(cwd, "tests/fixture")
 
