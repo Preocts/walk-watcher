@@ -32,7 +32,7 @@ def test_watcherconfig_loads_test_fixture_completely() -> None:
     assert config.emit_interval == 20
 
     assert config.metric_name == "test_watcher"
-    assert config.root_directory == "tests/fixture"
+    assert config.root_directories == ["tests/fixture", "tests/mock_directory"]
     assert config.remove_prefix == "tests/"
 
     assert config.exclude_directory_pattern == r"\/directory02|fixture$|\\directory02"

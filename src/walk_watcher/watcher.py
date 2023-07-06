@@ -153,23 +153,26 @@ class Watcher:
         Returns:
             A tuple of directories and files.
         """
-        root = self._config.root_directory
+        target_directories = self._config.root_directories
         remove_prefix = self._config.remove_prefix
 
         files: list[File] = []
         directories: list[Directory] = []
 
-        for dirpath, _, filenames in os.walk(root):
-            now = int(datetime.now().timestamp())
-            if remove_prefix:
-                dirpath = dirpath.lstrip(remove_prefix)
-                dirpath = dirpath or "/"
+        for root in target_directories:
+            self.logger.debug("Walking directory: %s", root)
 
-            directories.append(Directory(dirpath, now, len(filenames)))
-            files.extend([File(dirpath, filename, now) for filename in filenames])
+            for dirpath, _, filenames in os.walk(root):
+                now = int(datetime.now().timestamp())
+                if remove_prefix:
+                    dirpath = dirpath.lstrip(remove_prefix)
+                    dirpath = dirpath or "/"
 
-        self.logger.debug("Found %s directories", len(directories))
-        self.logger.debug("Found %s files", len(files))
+                directories.append(Directory(dirpath, now, len(filenames)))
+                files.extend([File(dirpath, filename, now) for filename in filenames])
+
+            self.logger.debug("Found %s directories", len(directories))
+            self.logger.debug("Found %s files", len(files))
 
         return directories, files
 
