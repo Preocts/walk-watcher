@@ -62,18 +62,17 @@ class WatcherEmitter:
             dimensions: A list of dimensions for the metric (aka keys/tags).
             guage_values: A list of guage values for the metric (aka fields).
             timestamp: The timestamp for the metric. If 0, the current time is used.
+                This is expected to be in seconds and is converted to milliseconds.
         """
         self._metric_lines.append(
             Metric(
                 metric_name=metric_name,
                 dimensions=dimensions,
                 guage_values=guage_values,
-                timestamp=timestamp or int(datetime.now().timestamp()),
+                timestamp=(timestamp or int(datetime.now().timestamp())) * 1000,
             )
         )
 
-    # smoketest_watcher,root=smoketest_queues/initial_documents_stage3 directory.file.count=0 1688606332
-    # directory.file.count,root=smoketest_queues/initial_documents_stage3 0 1688606332000
     def _get_lines(self, max_lines: int) -> list[str]:
         """Build a list of lines to emit, removing them from the emitter."""
         lines: list[str] = []
@@ -123,7 +122,7 @@ class WatcherEmitter:
 
     def to_telegraf(self, metric_lines: list[str]) -> None:
         """
-        Emit metric lines to a telegraf listener at localhost:8080/telegraf.
+        Emit metric lines to a telegraf listener.
 
         Args:
             metric_lines: A list of lines to emit.
