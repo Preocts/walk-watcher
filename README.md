@@ -11,13 +11,14 @@ A monitoring solution when directories and files are used as queues. Tracks the
 number of files in a directory and the oldest age of a file in the directory.
 
 The emitted metrics are in line protocal format with an interval size of
-seconds. This should be compatible with most ingest agents.
+milliseconds. This should be compatible with most ingest agents.
 
 ## Supported output
 
 - stdout
 - file target
 - telegraf agent
+- Dynatrace OneAgent
 
 ## Installation
 
@@ -100,6 +101,10 @@ Spaces are not permitted.
 | `telegraf_host` | defaults to `127.0.0.1`                                                          |
 | `telegraf_port` | defaults to `8080`                                                               |
 | `telegraf_path` | defaults to `/telegraf`                                                          |
+| `oneagent`      | When true metric lines are emitted to a local Dynatrace OneAgent agent           |
+| `oneagent_host` | defaults to `127.0.0.1`                                                          |
+| `oneagent_port` | defaults to `14499`                                                              |
+| `oneagent_path` | defaults to `/metrics/ingest`                                                    |
 
 ---
 
