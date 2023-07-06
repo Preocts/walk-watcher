@@ -83,13 +83,12 @@ Spaces are not permitted.
 
 ### \[watcher\]
 
-| key                   | value                                                                                                                           |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `metric_name`         | Name of the metric being emitted                                                                                                |
-| `root_directory`      | Location of the directory to scan for files                                                                                     |
-| `remove_prefix`       | Removes defined prefix from the `root`. Example, setting as `/home/process` would transform `/home/process/queues` to `/queues` |
-| `exclude_directories` | regex expression of directories to exclude from walking                                                                         |
-| `exclude_files`       | regex expression of files to exclude from tracking                                                                              |
+| key                   | value                                                   |
+| --------------------- | ------------------------------------------------------- |
+| `metric_name`         | Name of the metric being emitted                        |
+| `root_directories`    | Location of the directories to scan for files           |
+| `exclude_directories` | regex expression of directories to exclude from walking |
+| `exclude_files`       | regex expression of files to exclude from tracking      |
 
 ### \[emit\]
 
