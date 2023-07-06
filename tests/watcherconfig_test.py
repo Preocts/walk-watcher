@@ -33,7 +33,6 @@ def test_watcherconfig_loads_test_fixture_completely() -> None:
 
     assert config.metric_name == "test_watcher"
     assert config.root_directories == ["tests/fixture", "tests/mock_directory"]
-    assert config.remove_prefix == "tests/"
 
     assert config.exclude_directory_pattern == r"\/directory02|fixture$|\\directory02"
     assert config.exclude_file_pattern == "file01.*"

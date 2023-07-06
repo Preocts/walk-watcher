@@ -154,7 +154,6 @@ class Watcher:
             A tuple of directories and files.
         """
         target_directories = self._config.root_directories
-        remove_prefix = self._config.remove_prefix
 
         files: list[File] = []
         directories: list[Directory] = []
@@ -164,9 +163,6 @@ class Watcher:
 
             for dirpath, _, filenames in os.walk(root):
                 now = int(datetime.now().timestamp())
-                if remove_prefix:
-                    dirpath = dirpath.lstrip(remove_prefix)
-                    dirpath = dirpath or "/"
 
                 directories.append(Directory(dirpath, now, len(filenames)))
                 files.extend([File(dirpath, filename, now) for filename in filenames])
