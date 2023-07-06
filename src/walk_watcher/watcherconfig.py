@@ -34,7 +34,7 @@ config.file.name = {filename}
 [watcher]
 # Metric names cannot contain spaces or commas.
 metric_name = file.watcher
-root_directory =
+root_directories =
 remove_prefix =
 
 # Exclude directories and files from being watched.
@@ -118,9 +118,11 @@ class WatcherConfig:
         return self._config.get("watcher", "metric_name", fallback="walk_watcher")
 
     @property
-    def root_directory(self) -> str:
-        """Return the root directory to watch. Will raise if not set."""
-        return self._config.get("watcher", "root_directory")
+    def root_directories(self) -> list[str]:
+        """Return the root directories to watch. Will raise if not set."""
+        config_line = self._config.get("watcher", "root_directories")
+        lines = [line.strip() for line in config_line.split("\n") if line.strip()]
+        return lines
 
     @property
     def remove_prefix(self) -> str | None:

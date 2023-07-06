@@ -16,4 +16,4 @@ __pycache__/
 # Smoketest files
 smoketest/smoketest_queues/
 smoketest/smoketest.db
-smoketest/smoketest_metric*
+smoketest/smoketest_*

@@ -19,7 +19,7 @@ def watcher() -> Watcher:
         oldest_directory_row_days=2,
         oldest_file_row_days=3,
         metric_name="walk_watcher_test",
-        root_directory="tests/fixture",
+        root_directories=["tests/fixture"],
         remove_prefix="tests/",
         exclude_file_pattern="file01",
         exclude_directory_pattern=r"directory02|fixture\/$",
@@ -51,7 +51,7 @@ def test_walk_directory_keep_root(watcher: Watcher) -> None:
     cwd = os.getcwd()
     root = os.path.join(cwd, "tests/fixture")
 
-    with patch.object(watcher._config, "root_directory", root):
+    with patch.object(watcher._config, "root_directories", [root, "mock/dir"]):
         with patch.object(watcher._config, "remove_prefix", ""):
             all_directories, all_files = watcher._walk_directories()
 
