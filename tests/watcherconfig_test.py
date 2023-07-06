@@ -47,6 +47,11 @@ def test_watcherconfig_loads_test_fixture_completely() -> None:
     assert config.telegraf_port == 8080
     assert config.telegraf_path == "/telegraf"
 
+    assert config.emit_oneagent is True
+    assert config.oneagent_host == "127.0.0.1"
+    assert config.oneagent_port == 14499
+    assert config.oneagent_path == "/metrics/ingest"
+
 
 def test_dimensions_with_no_section() -> None:
     config = WatcherConfig(CONFIG_PATH)

@@ -53,6 +53,12 @@ telegraf = false
 telegraf_host = 127.0.0.1
 telegraf_port = 8080
 telegraf_path = /telegraf
+
+# OneAgent must be running on the following host and port.
+oneagent = false
+oneagent_host = 127.0.0.1
+oneagent_port = 14499
+oneagent_path = /metrics/ingest
 """
 
 
@@ -174,6 +180,26 @@ class WatcherConfig:
     def telegraf_path(self) -> str:
         """Return the path to send telegraf metrics to."""
         return self._config.get("emit", "telegraf_path", fallback="/telegraf")
+
+    @property
+    def emit_oneagent(self) -> bool:
+        """Return whether to emit metrics to a OneAgent listener."""
+        return self._config.getboolean("emit", "oneagent", fallback=False)
+
+    @property
+    def oneagent_host(self) -> str:
+        """Return the host to send OneAgent metrics to."""
+        return self._config.get("emit", "oneagent_host", fallback="127.0.0.1")
+
+    @property
+    def oneagent_port(self) -> int:
+        """Return the port to send OneAgent metrics to."""
+        return self._config.getint("emit", "oneagent_port", fallback=14499)
+
+    @property
+    def oneagent_path(self) -> str:
+        """Return the path to send OneAgent metrics to."""
+        return self._config.get("emit", "oneagent_path", fallback="/metrics/ingest")
 
 
 def write_new_config(filename: str) -> None:

@@ -22,23 +22,23 @@ def mock_config_true() -> MagicMock:
     config.emit_stdout = True
     config.emit_file = True
     config.emit_telegraf = True
+    config.emit_oneagent = True
     config.telegraf_host = "127.0.0.1"
     config.telegraf_port = 8080
     config.telegraf_path = "/telegraf"
+    config.oneagent_host = "127.0.0.1"
+    config.oneagent_port = 14499
+    config.oneagent_path = "/metrics/ingest"
     return config
 
 
 @pytest.fixture
-def mock_config_false() -> MagicMock:
-    config = MagicMock()
-    config.config_name = "test"
-    config.emit_stdout = False
-    config.emit_file = False
-    config.emit_telegraf = False
-    config.telegraf_host = "127.0.0.1"
-    config.telegraf_port = 8080
-    config.telegraf_path = "/telegraf"
-    return config
+def mock_config_false(mock_config_true: MagicMock) -> MagicMock:
+    mock_config_true.emit_stdout = False
+    mock_config_true.emit_file = False
+    mock_config_true.emit_telegraf = False
+    mock_config_true.emit_oneagent = False
+    return mock_config_true
 
 
 def test_emit_calls_all_methods(mock_config_true: MagicMock) -> None:
@@ -144,43 +144,117 @@ def test_to_stdout_early_exit(mock_config_false: MagicMock) -> None:
     assert results == ""
 
 
-def test_to_telegraf_early_exit(mock_config_false: MagicMock) -> None:
-    emitter = WatcherEmitter(mock_config_false)
-    with patch("walk_watcher.watcheremitter.http.client.HTTPConnection") as mock_http:
-        emitter.to_telegraf(["empty"])
-
-    assert mock_http.call_count == 0
-
-
-def test_to_telegraf(mock_config_true: MagicMock, caplog: LogCaptureFixture) -> None:
+def test_emit_lines_success(
+    mock_config_true: MagicMock,
+    caplog: LogCaptureFixture,
+) -> None:
     lines = ["metric.name,key1=test value1=100 1234567890"]
     emitter = WatcherEmitter(mock_config_true)
+    host = "mock.host"
+    port = 1234
+    path = "/mock/path"
     with patch("walk_watcher.watcheremitter.http.client.HTTPConnection") as mock_http:
         mock_http.return_value.getresponse.return_value.status = 204
-        emitter.to_telegraf(lines)
+        emitter._emit_lines(lines, host, port, path, [204])
 
-    mock_http.assert_called_once_with(host="127.0.0.1", port=8080, timeout=3)
+    mock_http.assert_called_once_with(host=host, port=port, timeout=3)
     mock_http.return_value.request.assert_called_once_with(
         "POST",
-        "/telegraf",
+        path,
         b"metric.name,key1=test value1=100 1234567890\n",
     )
     assert "Failed to emit" not in caplog.text
 
 
-def test_to_telegraf_failed(
+def test_emit_lines_failed(
     mock_config_true: MagicMock,
     caplog: LogCaptureFixture,
 ) -> None:
     emitter = WatcherEmitter(mock_config_true)
+    host = "mock.host"
+    port = 1234
+    path = "/mock/path"
     with patch("walk_watcher.watcheremitter.http.client.HTTPConnection") as mock_http:
         mock_http.return_value.getresponse.return_value.status = 400
-        emitter.to_telegraf(["empty"])
+        emitter._emit_lines(["empty"], host, port, path, [204])
 
-    mock_http.assert_called_once_with(host="127.0.0.1", port=8080, timeout=3)
+    mock_http.assert_called_once_with(host=host, port=port, timeout=3)
     mock_http.return_value.request.assert_called_once_with(
         "POST",
-        "/telegraf",
+        path,
         b"empty\n",
     )
     assert "Failed to emit" in caplog.text
+
+
+def test_emit_lines_early_exit(
+    mock_config_false: MagicMock,
+    caplog: LogCaptureFixture,
+) -> None:
+    emitter = WatcherEmitter(mock_config_false)
+    host = "mock.host"
+    port = 1234
+    path = "/mock/path"
+    with patch("walk_watcher.watcheremitter.http.client.HTTPConnection") as mock_http:
+        emitter._emit_lines([], host, port, path, [204])
+
+    assert mock_http.call_count == 0
+    assert "Failed to emit" not in caplog.text
+
+
+def test_to_telegraf(mock_config_true: MagicMock) -> None:
+    lines = [
+        "metric.name,key1=test value1=100 1234567890",
+        "metric.name,key1=test value1=100 1234567890",
+    ]
+    emitter = WatcherEmitter(mock_config_true)
+
+    with patch.object(emitter, "_emit_lines") as mock_emit:
+        emitter.to_telegraf(lines)
+
+    mock_emit.assert_called_once_with(
+        metric_lines=lines,
+        host=mock_config_true.telegraf_host,
+        port=mock_config_true.telegraf_port,
+        path=mock_config_true.telegraf_path,
+        valid_status_codes=[204],
+    )
+
+
+def test_to_telegraf_early_exit(mock_config_false: MagicMock) -> None:
+    emitter = WatcherEmitter(mock_config_false)
+    with patch.object(emitter, "_emit_lines") as mock_emit:
+        emitter.to_telegraf(["empty"])
+
+    assert mock_emit.call_count == 0
+
+
+def test_to_oneagent(mock_config_true: MagicMock) -> None:
+    lines = [
+        "metric.name,key1=test value1=100 1234567890",
+        "metric.name,key1=test value2=100 1234567890",
+    ]
+    expected_lines = [
+        "value1,key1=test 100 1234567890",
+        "value2,key1=test 100 1234567890",
+    ]
+    emitter = WatcherEmitter(mock_config_true)
+
+    with patch.object(emitter, "_emit_lines") as mock_emit:
+        emitter.to_oneagent(lines)
+
+    mock_emit.assert_called_once_with(
+        metric_lines=expected_lines,
+        host=mock_config_true.oneagent_host,
+        port=mock_config_true.oneagent_port,
+        path=mock_config_true.oneagent_path,
+        valid_status_codes=[202],
+    )
+
+
+def test_to_oneagent_early_exit(mock_config_false: MagicMock) -> None:
+    emitter = WatcherEmitter(mock_config_false)
+    with patch.object(emitter, "_emit_lines") as mock_emit:
+        emitter.to_oneagent(["empty"])
+
+    assert mock_emit.call_count == 0
