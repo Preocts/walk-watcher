@@ -49,11 +49,13 @@ def test_emit_calls_all_methods(mock_config_true: MagicMock) -> None:
     with patch.object(emitter, "to_stdout") as mock_stdout:
         with patch.object(emitter, "to_file") as mock_file:
             with patch.object(emitter, "to_telegraf") as mock_telegraf:
-                emitter.emit(batch_size=1)
+                with patch.object(emitter, "to_oneagent") as mock_oneagent:
+                    emitter.emit(batch_size=1)
 
     assert mock_stdout.call_count == 2
     assert mock_file.call_count == 2
     assert mock_telegraf.call_count == 2
+    assert mock_oneagent.call_count == 2
 
 
 def test_add_line(mock_config_false: MagicMock) -> None:

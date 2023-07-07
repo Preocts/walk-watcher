@@ -42,6 +42,7 @@ class WatcherEmitter:
             self.to_stdout(lines)
             self.to_file(lines)
             self.to_telegraf(lines)
+            self.to_oneagent(lines)
 
             count += len(lines)
 
