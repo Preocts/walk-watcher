@@ -142,12 +142,10 @@ Makefile.  If you are on Windows you can install make using scoop or chocolatey.
 | PHONY         | Description                                                           |
 | ------------- | --------------------------------------------------------------------- |
 | `install-dev` | install development/test requirements and project as editable install |
-| `update-dev`  | regenerate requirements-*.txt (will keep existing pins)               |
-| `upgrade-dev` | attempt to update all dependencies, regenerate requirements-*.txt     |
 | `coverage`    | Run tests with coverage, generate console report                      |
 | `docker-test` | Run coverage and tests in a docker container.                         |
 | `build-dist`  | Build source distribution and wheel distribution                      |
-| `clean`       | Deletes build, tox, coverage, pytest, mypy, cache, and pyc artifacts  |
+| `clean`       | Deletes build, nox, coverage, pytest, mypy, cache, and pyc artifacts  |
 
 
 Clone this repo and enter root directory of repo:
@@ -216,7 +214,7 @@ $ pytest
 Run tests (slow):
 
 ```console
-$ tox
+$ nox
 ```
 
 Build dist:

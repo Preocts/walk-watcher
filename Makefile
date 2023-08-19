@@ -3,21 +3,6 @@ install-dev:
 	python -m pip install --upgrade --editable .[dev,test]
 	pre-commit install
 
-.PHONY: update-dev
-update-dev:
-	python -m pip install --upgrade pip-tools
-	pip-compile --resolver=backtracking --no-emit-index-url requirements/requirements.in
-	pip-compile --resolver=backtracking --no-emit-index-url requirements/requirements-dev.in
-	pip-compile --resolver=backtracking --no-emit-index-url requirements/requirements-test.in
-
-.PHONY: upgrade-dev
-upgrade-dev:
-	python -m pip install --upgrade pip-tools
-	pip-compile --resolver=backtracking --upgrade --no-emit-index-url requirements/requirements.in
-	pip-compile --resolver=backtracking --upgrade --no-emit-index-url requirements/requirements-dev.in
-	pip-compile --resolver=backtracking --upgrade --no-emit-index-url requirements/requirements-test.in
-
-
 .PHONY: coverage
 coverage:
 	coverage run -m pytest tests/
@@ -39,7 +24,7 @@ clean:
 	find . -name '*.pyo' -exec rm -f {} +
 	find . -name '__pycache__' -exec rm -rf {} +
 	find . -name '.mypy_cache' -exec rm -rf {} +
-	rm -rf .tox
+	rm -rf .nox
 	rm -f coverage.xml
 	rm -f coverage.json
 	rm -rf htmlcov
