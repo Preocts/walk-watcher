@@ -7,7 +7,6 @@ from unittest.mock import patch
 import pytest
 
 from walk_watcher.watcher import Watcher
-from walk_watcher.watchermodel import Directory
 from walk_watcher.watchermodel import File
 
 
@@ -35,13 +34,9 @@ def test_walk_directory(watcher: Watcher) -> None:
 
     with patch.object(watcher._config, "root_directories", [root, "mock/dir"]):
         with patch.object(watcher._config, "remove_prefix", ""):
-            all_directories, all_files = watcher._walk_directories()
+            all_files = watcher._walk_directories()
 
-    assert len(all_directories) == 3
     assert len(all_files) == 3
-
-    for directory in all_directories:
-        assert directory.root.startswith(root)
 
     for file in all_files:
         assert file.root.startswith(root)
@@ -53,13 +48,13 @@ def test_filter_files(watcher: Watcher) -> None:
         File("/foo/bar", "file02.txt", 1234567890, 1234567890, 0, 0),
     ]
     with patch.object(watcher._config, "exclude_file_pattern", "file0.*"):
-        result_all = watcher._filter_files(mock_files)
+        result_all = watcher._filter_on_filename(mock_files)
 
     with patch.object(watcher._config, "exclude_file_pattern", "file01"):
-        result_one = watcher._filter_files(mock_files)
+        result_one = watcher._filter_on_filename(mock_files)
 
     with patch.object(watcher._config, "exclude_file_pattern", ""):
-        result_none = watcher._filter_files(mock_files)
+        result_none = watcher._filter_on_filename(mock_files)
 
     assert len(result_all) == 0
     assert len(result_one) == 1
@@ -67,19 +62,19 @@ def test_filter_files(watcher: Watcher) -> None:
 
 
 def test_filter_directories(watcher: Watcher) -> None:
-    mock_directories = [
-        Directory("/foo", 1234567890, 0),
-        Directory("/foo/bar", 1234567890, 0),
-        Directory("/foo/bar/baz", 1234567890, 0),
+    mock_files = [
+        File("/foo", "file01.txt", 1234567890, 1234567890, 0, 0),
+        File("/foo/bar", "file02.txt", 1234567890, 1234567890, 0, 0),
+        File("/foo/bar/baz", "file03.txt", 1234567890, 1234567890, 0, 0),
     ]
     with patch.object(watcher._config, "exclude_directory_pattern", r"\/foo$|\/bar"):
-        result_all = watcher._filter_directories(mock_directories)
+        result_all = watcher._filter_on_directory(mock_files)
 
     with patch.object(watcher._config, "exclude_directory_pattern", r"\/bar"):
-        result_one = watcher._filter_directories(mock_directories)
+        result_one = watcher._filter_on_directory(mock_files)
 
     with patch.object(watcher._config, "exclude_directory_pattern", ""):
-        result_none = watcher._filter_directories(mock_directories)
+        result_none = watcher._filter_on_directory(mock_files)
 
     assert len(result_all) == 0
     assert len(result_one) == 1

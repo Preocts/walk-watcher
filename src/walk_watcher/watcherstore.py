@@ -78,7 +78,6 @@ class WatcherStore:
         self._oldest_file_row_age = oldest_file_row_age
 
         self._create_file_table()
-        self._create_directory_table()
         self._create_system_table()
 
         self._save_system_info(database_path)
@@ -105,7 +104,6 @@ class WatcherStore:
         traceback: TracebackType | None,
     ) -> None:
         """Exit a context manager."""
-        self.clean_oldest_directories()
         self.clean_oldest_files()
         self.stop_run()
 
@@ -129,23 +127,6 @@ class WatcherStore:
             """
         )
         self.logger.debug("Created file table")
-
-    def _create_directory_table(self) -> None:
-        """Create the directory table if it does not already exist."""
-        # We care about the file count of the directory so that we can map
-        # the activity of the directory over time.
-        self._connection.execute(
-            """
-            CREATE TABLE IF NOT EXISTS directories (
-                id INTEGER PRIMARY KEY,
-                root TEXT NOT NULL,
-                last_seen INTEGER NOT NULL,
-                file_count INTEGER NOT NULL,
-                UNIQUE(root, last_seen)
-            )
-            """
-        )
-        self.logger.debug("Created directory table")
 
     def _create_system_table(self) -> None:
         """Create a table to store system information."""
@@ -210,22 +191,6 @@ class WatcherStore:
             cursor.execute("UPDATE system SET is_running = 0")
             self._connection.commit()
 
-    def save_directories(self, directories: list[Directory]) -> None:
-        """Save the given directories to the database."""
-        self.logger.debug("Saving %s directories", len(directories))
-        with closing(self._connection.cursor()) as cursor:
-            cursor.executemany(
-                """
-                INSERT OR IGNORE INTO directories (root, last_seen, file_count)
-                VALUES (?, ?, ?)
-                """,
-                [
-                    (directory.root, directory.last_seen, directory.file_count)
-                    for directory in directories
-                ],
-            )
-            self._connection.commit()
-
     def save_files(self, files: list[File]) -> None:
         """Save the given files to the database."""
         # We run a batch update followed by a batch insert which ignores
@@ -283,45 +248,6 @@ class WatcherStore:
             ],
         )
 
-    def get_directory_rows(self) -> list[Directory]:
-        """Get most recently seen directories and their file counts."""
-        self.logger.debug("Getting directory rows")
-        with closing(self._connection.cursor()) as cursor:
-            cursor.execute(
-                """
-                WITH ptn_directories AS
-                    (
-                        SELECT root, last_seen, file_count,
-                            ROW_NUMBER() OVER
-                                ( PARTITION BY root ORDER BY last_seen DESC ) rn
-                        FROM directories
-                    )
-                SELECT root, last_seen, file_count
-                FROM ptn_directories
-                WHERE rn = 1
-                """
-            )
-            return [
-                Directory(root, last_seen, file_count)
-                for root, last_seen, file_count in cursor.fetchall()
-            ]
-
-    def get_file_rows(self, directory: Directory) -> list[File]:
-        """Get all present files for the given directory sorted by age descending."""
-        self.logger.debug("Getting file rows for %s", directory.root)
-        with closing(self._connection.cursor()) as cursor:
-            cursor.execute(
-                """
-                SELECT root, filename, last_seen, first_seen, age_seconds, removed
-                FROM files
-                WHERE root = ? AND removed = 0
-                ORDER BY age_seconds DESC
-                """,
-                (directory.root,),
-            )
-            # Watch the order of the columns here
-            return [File(*row) for row in cursor.fetchall()]
-
     def get_oldest_files(self) -> list[File]:
         """Get the oldest file per directory that are not removed."""
         self.logger.debug("Getting oldest files")
@@ -342,23 +268,22 @@ class WatcherStore:
                 ORDER BY age_seconds DESC
                 """
             )
-            # Watch the order of the columns here
+            # Watch the order of the columns here, must match the model
             return [File(*row) for row in cursor.fetchall()]
 
-    def clean_oldest_directories(self) -> None:
-        """Remove any directory row that is older than max age."""
-        self.logger.debug("Cleaning oldest directories")
-        now = int(datetime.now().timestamp())
-        max_age = now - self._oldest_directory_row_age * 86400
+    def get_directories(self) -> list[Directory]:
+        """Get unique directories from files table with directory size in bytes."""
+        # TODO: size in bytes will be added after removal of the directory table
+        self.logger.debug("Getting directories")
         with closing(self._connection.cursor()) as cursor:
             cursor.execute(
                 """
-                DELETE FROM directories
-                WHERE last_seen < ?
-                """,
-                (max_age,),
+                SELECT root, COUNT(root), 0 from files GROUP BY root;
+                """
             )
-            self._connection.commit()
+
+            # Watch the order of the columns here, must match the model
+            return [Directory(*row) for row in cursor.fetchall()]
 
     def clean_oldest_files(self) -> None:
         """Remove any file row that is older than max age."""
