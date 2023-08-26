@@ -18,6 +18,9 @@ max_is_running_seconds = 60
 # Controls how many lines are emitted in a single batch.
 max_emit_line_count = 500
 
+# If true, file age is based on creation time (see README.md)
+treat_files_as_new = false
+
 [intervals]
 # Intervals are only used when running with the `--loop` flag.
 # Intervals are in seconds.
@@ -94,6 +97,11 @@ class WatcherConfig:
     def max_emit_line_count(self) -> int:
         """Return the maximum number of lines to emit at once."""
         return self._config.getint("system", "max_emit_line_count", fallback=500)
+
+    @property
+    def treat_files_as_new(self) -> bool:
+        """Return the flag for how first_seen timestamps are calculated."""
+        return self._config.getboolean("system", "treat_files_as_new", fallback=False)
 
     @property
     def collect_interval(self) -> int:
