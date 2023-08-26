@@ -11,8 +11,6 @@ config_name = {filename}
 
 # :memory: can be used here to use an in-memory database.
 database_path = {filename}
-oldest_directory_row_days = 14
-oldest_file_row_days = 14
 
 # Controls how long the is_running flag is valid for.
 max_is_running_seconds = 60
@@ -91,16 +89,6 @@ class WatcherConfig:
     def max_is_running_seconds(self) -> int:
         """Return the maximum age of the is_running flag in seconds."""
         return self._config.getint("system", "max_is_running_seconds", fallback=300)
-
-    @property
-    def oldest_directory_row_days(self) -> int:
-        """Return the maximum age of a directory row in days."""
-        return self._config.getint("system", "oldest_directory_row_days", fallback=30)
-
-    @property
-    def oldest_file_row_days(self) -> int:
-        """Return the maximum age of a file row in days."""
-        return self._config.getint("system", "oldest_file_row_days", fallback=30)
 
     @property
     def max_emit_line_count(self) -> int:
