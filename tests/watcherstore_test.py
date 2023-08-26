@@ -27,8 +27,8 @@ FILE_ROWS = [
     [6, "/home/user/luke", "file3", NOW_TS, NOW_TX_PLUS_31_DAYS, THIRTYONE_DAYS, 1],
 ]
 EXPECTED_DIRECTORIES: Any = [
-    ["/home/user/obiwan", 3, 0],
-    ["/home/user/luke", 3, 0],
+    ["/home/user/obiwan", 2, 0],
+    ["/home/user/luke", 2, 0],
 ]
 
 
