@@ -278,7 +278,9 @@ class WatcherStore:
         with closing(self._connection.cursor()) as cursor:
             cursor.execute(
                 """
-                SELECT root, COUNT(root), 0 from files GROUP BY root;
+                SELECT root, COUNT(root), 0 FROM files
+                WHERE removed = 0
+                GROUP BY root
                 """
             )
 
