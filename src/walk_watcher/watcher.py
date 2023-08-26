@@ -8,7 +8,6 @@ from datetime import datetime
 
 from .watcherconfig import WatcherConfig
 from .watcheremitter import WatcherEmitter
-from .watchermodel import Directory
 from .watchermodel import File
 from .watcherstore import WatcherStore
 
@@ -70,15 +69,15 @@ class Watcher:
         tic = time.perf_counter()
 
         with self._store as data_store:
-            directories, files = self._walk_directories()
+            files = self._walk_directories()
 
-            self.logger.debug("Filtering and Saving file data...")
-            files = self._filter_files(files)
+            self.logger.debug("Filtering on filename...")
+            files = self._filter_on_filename(files)
+
+            self.logger.debug("Filtering on directory...")
+            directories = self._filter_on_directory(files)
+
             data_store.save_files(files)
-
-            self.logger.debug("Filtering and Saving directory data...")
-            directories = self._filter_directories(directories)
-            data_store.save_directories(directories)
 
             self._add_directory_lines(data_store)
             self._add_file_lines(data_store)
@@ -100,7 +99,7 @@ class Watcher:
 
     def _add_directory_lines(self, datastore: WatcherStore) -> None:
         """Add the directory lines to the emitter."""
-        directories = datastore.get_directory_rows()
+        directories = datastore.get_directories()
         for directory in directories:
             root = self._sanitize_directory_path(directory.root)
             dimension = f"root={root}"
@@ -125,7 +124,7 @@ class Watcher:
                 guage_values=[guage_value],
             )
 
-    def _filter_files(self, files: list[File]) -> list[File]:
+    def _filter_on_filename(self, files: list[File]) -> list[File]:
         """Filter the given files based on the config."""
         if not self._config.exclude_file_pattern:
             return files
@@ -134,19 +133,16 @@ class Watcher:
 
         return [file for file in files if not exlude_ptn.search(file.filename)]
 
-    def _filter_directories(self, directories: list[Directory]) -> list[Directory]:
+    def _filter_on_directory(self, files: list[File]) -> list[File]:
         """Filter the given directories based on the config."""
         if not self._config.exclude_directory_pattern:
-            return directories
+            return files
+
         exlude_ptn = re.compile(self._config.exclude_directory_pattern)
 
-        return [
-            directory
-            for directory in directories
-            if not exlude_ptn.search(directory.root)
-        ]
+        return [file for file in files if not exlude_ptn.search(file.root)]
 
-    def _walk_directories(self) -> tuple[list[Directory], list[File]]:
+    def _walk_directories(self) -> list[File]:
         """
         Walk the root directory and return the directories and files.
 
@@ -156,7 +152,6 @@ class Watcher:
         target_directories = self._config.root_directories
 
         files: list[File] = []
-        directories: list[Directory] = []
 
         for root in target_directories:
             self.logger.debug("Walking directory: %s", root)
@@ -164,13 +159,11 @@ class Watcher:
             for dirpath, _, filenames in os.walk(root):
                 now = int(datetime.now().timestamp())
 
-                directories.append(Directory(dirpath, now, len(filenames)))
                 files.extend([File(dirpath, filename, now) for filename in filenames])
 
-            self.logger.debug("Found %s directories", len(directories))
             self.logger.debug("Found %s files", len(files))
 
-        return directories, files
+        return files
 
     @staticmethod
     def _sanitize_directory_path(path: str) -> str:

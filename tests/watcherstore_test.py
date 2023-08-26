@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Any
 from unittest.mock import MagicMock
 from unittest.mock import patch
 
@@ -16,16 +17,7 @@ MAX_IS_RUNNING_AGE = 5 * 60  # 5 minutes
 NOW_TS = int(datetime.now().timestamp())
 THIRTYONE_DAYS = 31 * 24 * 60 * 60
 NOW_TX_PLUS_31_DAYS = NOW_TS - THIRTYONE_DAYS
-DIRECTORY_ROWS = [
-    [1, "/home/user", NOW_TS, 0],
-    [2, "/home/user/obiwan", NOW_TS, 15],
-    [3, "/home/user/anakin", NOW_TS, 10],
-    [4, "/home/user/luke", NOW_TS, 5],
-    [5, "/home/user", NOW_TX_PLUS_31_DAYS, 0],
-    [6, "/home/user/obiwan", NOW_TX_PLUS_31_DAYS, 2],
-    [7, "/home/user/anakin", NOW_TX_PLUS_31_DAYS, 0],
-    [8, "/home/user/luke", NOW_TX_PLUS_31_DAYS, 2],
-]
+
 FILE_ROWS = [
     [1, "/home/user/obiwan", "file1", NOW_TS, NOW_TS + 3, 3, 0],
     [2, "/home/user/obiwan", "file2", NOW_TS, NOW_TS, 1, 0],
@@ -33,6 +25,10 @@ FILE_ROWS = [
     [4, "/home/user/luke", "file1", NOW_TS, NOW_TS, 1, 0],
     [5, "/home/user/luke", "file2", NOW_TS, NOW_TS + 4, 4, 0],
     [6, "/home/user/luke", "file3", NOW_TS, NOW_TX_PLUS_31_DAYS, THIRTYONE_DAYS, 1],
+]
+EXPECTED_DIRECTORIES: Any = [
+    ["/home/user/obiwan", 3, 0],
+    ["/home/user/luke", 3, 0],
 ]
 
 
@@ -49,10 +45,6 @@ def store_db_full() -> WatcherStore:
     db = WatcherStore(
         ":memory:",
         max_is_running_age=MAX_IS_RUNNING_AGE,
-    )
-    db._connection.executemany(
-        "INSERT INTO directories VALUES (?, ?, ?, ?)",
-        DIRECTORY_ROWS,
     )
     db._connection.executemany(
         "INSERT INTO files VALUES (?, ?, ?, ?, ?, ?, ?)",
@@ -93,14 +85,6 @@ def test_create_file_table(store_db: WatcherStore) -> None:
     tables = [name[0] for name in cursor.fetchall()]
 
     assert "files" in tables
-
-
-def test_create_directory_table(store_db: WatcherStore) -> None:
-    cursor = store_db._connection.cursor()
-    cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
-    tables = [name[0] for name in cursor.fetchall()]
-
-    assert "directories" in tables
 
 
 def test_create_system_table(store_db: WatcherStore) -> None:
@@ -166,26 +150,6 @@ def test_end_run_updates_system_table(store_db: WatcherStore) -> None:
     rows = cursor.fetchone()
 
     assert rows[0] == 0  # is_running is False
-
-
-def test_save_directories(store_db: WatcherStore) -> None:
-    directories = [
-        Directory("/home/user/magamind", 1618224000, 15),
-        Directory("/home/user/minion", 1618224000, 10),
-    ]
-    # We save the directories twice to ensure that the
-    # UNIQUE(root, last_seen) constraint is working.
-    store_db.save_directories(directories)
-    store_db.save_directories(directories)
-    cursor = store_db._connection.cursor()
-    cursor.execute("SELECT * FROM directories")
-    rows = cursor.fetchall()
-
-    assert len(rows) == len(directories)
-    assert all(
-        row[1:] == (directory.root, directory.last_seen, directory.file_count)
-        for row, directory in zip(rows, directories)
-    )
 
 
 def test_save_files_empty_rows(store_db: WatcherStore) -> None:
@@ -288,20 +252,13 @@ def test_save_files_marks_all_removed(store_db: WatcherStore) -> None:
     assert all(removed)
 
 
-def test_get_directory_rows(store_db_full: WatcherStore) -> None:
-    rows = store_db_full.get_directory_rows()
+def test_get_directories(store_db_full: WatcherStore) -> None:
+    rows = store_db_full.get_directories()
+    expected = {Directory(*row) for row in EXPECTED_DIRECTORIES}
 
     # Reference DIRECTORY_ROWS for the expected result
-    assert len(rows) == 4
-
-
-def test_get_file_rows(store_db_full: WatcherStore) -> None:
-    directory = Directory(*DIRECTORY_ROWS[0][1:])  # type: ignore
-    expected_count = DIRECTORY_ROWS[0][3]
-
-    rows = store_db_full.get_file_rows(directory)
-
-    assert len(rows) == expected_count
+    assert len(rows) == len(EXPECTED_DIRECTORIES)
+    assert not (set(rows) - expected)
 
 
 def test_get_oldest_files(store_db_full: WatcherStore) -> None:
@@ -313,16 +270,6 @@ def test_get_oldest_files(store_db_full: WatcherStore) -> None:
     assert rows[0].filename == "file2"
     assert rows[1].root == "/home/user/obiwan"
     assert rows[1].filename == "file1"
-
-
-def test_clean_oldest_directories(store_db_full: WatcherStore) -> None:
-    store_db_full.clean_oldest_directories()
-
-    cursor = store_db_full._connection.cursor()
-    cursor.execute("SELECT * FROM directories")
-    rows = cursor.fetchall()
-
-    assert len(rows) == 4
 
 
 def test_clean_oldest_files(store_db_full: WatcherStore) -> None:

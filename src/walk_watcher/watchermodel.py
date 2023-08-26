@@ -6,16 +6,11 @@ from datetime import datetime
 
 @dataclasses.dataclass(frozen=True)
 class Directory:
-    """A directory row in the database."""
+    """Represents a unique directory."""
 
     root: str
-    last_seen: int
     file_count: int
-
-    def __str__(self) -> str:
-        """Return a string representation of the directory."""
-        lastseen = datetime.fromtimestamp(self.last_seen).strftime("%Y-%m-%d %H:%M:%S")
-        return f"{self.root} ({self.file_count} files, last seen {lastseen})"
+    size_bytes: int
 
 
 @dataclasses.dataclass(frozen=True)
