@@ -64,8 +64,6 @@ def test_storedb_built_from_config() -> None:
     store_db = WatcherStore.from_config(config)
 
     assert store_db._max_is_running_age == 1
-    assert store_db._oldest_directory_row_age == 2
-    assert store_db._oldest_file_row_age == 3
 
 
 def test_storedb_works_with_context_manager() -> None:
@@ -272,8 +270,8 @@ def test_get_oldest_files(store_db_full: WatcherStore) -> None:
     assert rows[1].filename == "file1"
 
 
-def test_clean_oldest_files(store_db_full: WatcherStore) -> None:
-    store_db_full.clean_oldest_files()
+def test_clean_removed_files(store_db_full: WatcherStore) -> None:
+    store_db_full.clean_removed_files()
 
     cursor = store_db_full._connection.cursor()
     cursor.execute("SELECT * FROM files")

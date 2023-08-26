@@ -22,14 +22,6 @@ if TYPE_CHECKING:
         def max_is_running_seconds(self) -> int:
             ...
 
-        @property
-        def oldest_directory_row_days(self) -> int:
-            ...
-
-        @property
-        def oldest_file_row_days(self) -> int:
-            ...
-
 
 class WatcherStore:
     """Database for storing data about files and directories."""
@@ -41,8 +33,6 @@ class WatcherStore:
         database_path: str = ":memory:",
         *,
         max_is_running_age: int = 300,
-        oldest_directory_row_age: int = 30,
-        oldest_file_row_age: int = 30,
     ) -> None:
         """
         Initialize a new StoreDB connected to the given path.
@@ -62,20 +52,12 @@ class WatcherStore:
             max_is_running_age: The maximum age of the is_running flag in
                 seconds. If the is_running flag is older than this, it will be
                 reset to 0. Defaults to 300 (5 minutes).
-            oldest_directory_row_age: The maximum age of a directory row in
-                days. If a directory row is older than this, it will be
-                removed on cleanup. Defaults to 30.
-            oldest_file_row_age: The maximum age of a file row in days. If a
-                file row is older than this, it will be removed on cleanup.
-                Defaults to 30.
 
         """
         self.logger.debug("Initializing StoreDB at %s", database_path)
         self._connection = sqlite3.connect(database_path)
 
         self._max_is_running_age = max_is_running_age
-        self._oldest_directory_row_age = oldest_directory_row_age
-        self._oldest_file_row_age = oldest_file_row_age
 
         self._create_file_table()
         self._create_system_table()
@@ -88,8 +70,6 @@ class WatcherStore:
         return cls(
             config.database_path,
             max_is_running_age=config.max_is_running_seconds,
-            oldest_directory_row_age=config.oldest_directory_row_days,
-            oldest_file_row_age=config.oldest_file_row_days,
         )
 
     def __enter__(self) -> WatcherStore:
@@ -104,7 +84,7 @@ class WatcherStore:
         traceback: TracebackType | None,
     ) -> None:
         """Exit a context manager."""
-        self.clean_oldest_files()
+        self.clean_removed_files()
         self.stop_run()
 
     def _create_file_table(self) -> None:
@@ -287,16 +267,15 @@ class WatcherStore:
             # Watch the order of the columns here, must match the model
             return [Directory(*row) for row in cursor.fetchall()]
 
-    def clean_oldest_files(self) -> None:
-        """Remove any file row that is older than max age."""
-        self.logger.debug("Cleaning oldest files")
-        max_age = self._oldest_file_row_age * 86400
+    def clean_removed_files(self) -> None:
+        """Remove any file row that are marked as removed."""
+        self.logger.debug("Clean removed files")
+
         with closing(self._connection.cursor()) as cursor:
             cursor.execute(
                 """
                 DELETE FROM files
-                WHERE age_seconds > ?
-                """,
-                (max_age,),
+                WHERE removed != 0
+                """
             )
             self._connection.commit()
