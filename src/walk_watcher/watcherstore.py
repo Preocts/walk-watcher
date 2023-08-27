@@ -200,7 +200,7 @@ class WatcherStore:
             """
             INSERT OR IGNORE INTO files (root, filename, first_seen,
                 last_seen, age_seconds, removed)
-            VALUES (?, ?, ?, ?, 0, 0)
+            VALUES (?, ?, ?, ?, ?, 0)
             """,
             [
                 (
@@ -208,6 +208,7 @@ class WatcherStore:
                     file.filename,
                     file.first_seen,
                     file.last_seen,
+                    file.last_seen - file.first_seen,
                 )
                 for file in files
             ],
