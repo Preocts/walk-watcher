@@ -26,6 +26,8 @@ def test_watcherconfig_loads_test_fixture_completely() -> None:
     assert config.max_is_running_seconds == 60
     assert config.max_emit_line_count == 1000
 
+    assert config.treat_files_as_new is True
+
     assert config.collect_interval == 5
     assert config.emit_interval == 20
 

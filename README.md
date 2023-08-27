@@ -20,6 +20,25 @@ milliseconds. This should be compatible with most ingest agents.
 - telegraf agent
 - Dynatrace OneAgent
 
+## Limitation: file age
+
+As this was designed to track files moving through a queue of directories is it
+assumed that the file is being moved instead of being created new. Because of
+this there is a limitation on determining the age of the file. While linux
+systems will return the last time a file was moved in the modified date of the
+file, Windows systems do not. In fact, there is no easy way to get that
+information from a Windows filesystem.
+
+Because of this, file age is based on the first time the watcher sees the file
+and not when the file was created. This means that on startup the file ages will
+not be as accurate as they are after the watcher has been running. The length of
+time for the accuracy to increase depends on the rate at which the files move
+through the directory queues.
+
+This default behavior can altered with the configration file. By setting
+`treat_files_as_new = true` the first seen timestamp will look at the file
+creation time.
+
 ## Installation
 
 ```console

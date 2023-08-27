@@ -206,7 +206,7 @@ class WatcherStore:
                 (
                     file.root,
                     file.filename,
-                    file.last_seen,
+                    file.first_seen,
                     file.last_seen,
                 )
                 for file in files

@@ -15,8 +15,7 @@ def watcher() -> Watcher:
     config = MagicMock(
         database_path=":memory:",
         max_is_running_seconds=1,
-        oldest_directory_row_days=2,
-        oldest_file_row_days=3,
+        treat_files_as_new=False,
         metric_name="walk_watcher_test",
         root_directories=["tests/fixture"],
         remove_prefix="tests/",
@@ -151,3 +150,33 @@ def test_run_loop_bubbles_unexpected_exceptions(watcher: Watcher) -> None:
 
                 with pytest.raises(ValueError, match="Unexpected error"):
                     watcher.run_loop()
+
+
+def test_build_file_models_file_not_found(watcher: Watcher) -> None:
+    """Assert that existing file is modeled and missing file is skipped."""
+    filenames = [
+        "watcher_test.py",
+        "nota_test.py",
+    ]
+    dirpath = "./tests"
+
+    # When treat_files_as_new is false the getctime() call is skipped
+    # TODO: remove this override when we are gathering file size as well
+    with patch.object(watcher._config, "treat_files_as_new", True):
+        result = watcher._build_file_models(dirpath, filenames)
+
+    assert len(result) == 1
+
+
+def test_get_first_seen_uses_config_flag(watcher: Watcher) -> None:
+    """Assert that treat_files_as_new flag changes returned value."""
+    filepath = "./tests/watcher_test.py"
+    now = 123
+
+    with patch.object(watcher._config, "treat_files_as_new", False):
+        moved_files = watcher._get_first_seen(filepath, now)
+    with patch.object(watcher._config, "treat_files_as_new", True):
+        new_files = watcher._get_first_seen(filepath, now)
+
+    assert moved_files == now
+    assert new_files != now
