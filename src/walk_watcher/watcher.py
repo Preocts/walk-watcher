@@ -4,7 +4,6 @@ import logging
 import os
 import re
 import time
-from datetime import datetime
 
 from .watcherconfig import WatcherConfig
 from .watcheremitter import WatcherEmitter
@@ -157,13 +156,48 @@ class Watcher:
             self.logger.debug("Walking directory: %s", root)
 
             for dirpath, _, filenames in os.walk(root):
-                now = int(datetime.now().timestamp())
-
-                files.extend([File(dirpath, filename, now) for filename in filenames])
-
-            self.logger.debug("Found %s files", len(files))
+                files.extend(self._build_file_models(dirpath, filenames))
 
         return files
+
+    def _build_file_models(self, dirpath: str, filenames: list[str]) -> list[File]:
+        """Parses the filenames into File objects."""
+        now = int(time.time())
+        files: list[File] = []
+
+        for filename in filenames:
+            filepath = os.path.join(dirpath, filename)
+            try:
+                firstseen = self._get_first_seen(filepath, now)
+
+            except FileNotFoundError:
+                # The file has been moved after the walk completed
+                self.logger.debug("'%s' moved during walk.", filepath)
+                continue
+
+            files.append(
+                File(
+                    root=dirpath,
+                    filename=filename,
+                    last_seen=now,
+                    first_seen=firstseen,
+                )
+            )
+
+        self.logger.debug("Found %s files", len(files))
+
+        return files
+
+    def _get_first_seen(self, filepath: str, now: int) -> int:
+        """Return the int timestamp of when the file is first seen."""
+        # TODO: test this
+        if self._config.treat_files_as_new:
+            # Files are newly created between queues, safe to use ctime for timestamp
+            return int(os.path.getctime(filepath))
+
+        # Files are moved between queues, Windows fails to report ctime correctly
+        # Use now in place of ctime.
+        return now
 
     @staticmethod
     def _sanitize_directory_path(path: str) -> str:
