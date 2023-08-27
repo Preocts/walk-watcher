@@ -74,16 +74,16 @@ class Watcher:
             files = self._filter_on_filename(files)
 
             self.logger.debug("Filtering on directory...")
-            directories = self._filter_on_directory(files)
+            files = self._filter_on_directory(files)
 
             data_store.save_files(files)
 
-            self._add_directory_lines(data_store)
+            self._add_directory_file_count_lines(data_store)
+            self._add_directory_size_lines(data_store)
             self._add_file_lines(data_store)
 
         toc = time.perf_counter()
         self.logger.info("Watcher finished in %s seconds", toc - tic)
-        self.logger.info("Detected %s directories", len(directories))
         self.logger.info("Detected %s files", len(files))
 
     def emit(self) -> None:
@@ -96,8 +96,21 @@ class Watcher:
         toc = time.perf_counter()
         self.logger.info("Emitting finished in %s seconds", toc - tic)
 
-    def _add_directory_lines(self, datastore: WatcherStore) -> None:
-        """Add the directory lines to the emitter."""
+    def _add_directory_size_lines(self, datastore: WatcherStore) -> None:
+        """Add the directory lines with size in bytes to the emitter."""
+        directories = datastore.get_directories()
+        for directory in directories:
+            root = self._sanitize_directory_path(directory.root)
+            dimension = f"root={root}"
+            gauge_value = f"directory.size.bytes={directory.size_bytes}"
+            self._emitter.add_line(
+                metric_name=self._config.metric_name,
+                dimensions=[self._config.dimensions, dimension],
+                guage_values=[gauge_value],
+            )
+
+    def _add_directory_file_count_lines(self, datastore: WatcherStore) -> None:
+        """Add the directory lines with file count to the emitter."""
         directories = datastore.get_directories()
         for directory in directories:
             root = self._sanitize_directory_path(directory.root)
