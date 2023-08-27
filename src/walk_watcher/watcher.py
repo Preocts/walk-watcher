@@ -169,6 +169,7 @@ class Watcher:
             filepath = os.path.join(dirpath, filename)
             try:
                 firstseen = self._get_first_seen(filepath, now)
+                size_in_bytes = self._get_file_size_in_bytes(filepath)
 
             except FileNotFoundError:
                 # The file has been moved after the walk completed
@@ -179,8 +180,9 @@ class Watcher:
                 File(
                     root=dirpath,
                     filename=filename,
-                    last_seen=now,
                     first_seen=firstseen,
+                    last_seen=now,
+                    size_bytes=size_in_bytes,
                 )
             )
 
@@ -201,6 +203,15 @@ class Watcher:
 
         # Files are moved between queues, Windows fails to report ctime correctly
         return now
+
+    def _get_file_size_in_bytes(self, filepath: str) -> int:
+        """
+        Return the reported file size of the file.
+
+        Raises:
+            FileNotFoundError
+        """
+        return os.path.getsize(filepath)
 
     @staticmethod
     def _sanitize_directory_path(path: str) -> str:

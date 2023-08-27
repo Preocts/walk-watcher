@@ -160,10 +160,7 @@ def test_build_file_models_file_not_found(watcher: Watcher) -> None:
     ]
     dirpath = "./tests"
 
-    # When treat_files_as_new is false the getctime() call is skipped
-    # TODO: remove this override when we are gathering file size as well
-    with patch.object(watcher._config, "treat_files_as_new", True):
-        result = watcher._build_file_models(dirpath, filenames)
+    result = watcher._build_file_models(dirpath, filenames)
 
     assert len(result) == 1
 
