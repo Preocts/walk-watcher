@@ -167,7 +167,7 @@ def test_save_files_empty_rows(store_db: WatcherStore) -> None:
         == (
             file.root,
             file.filename,
-            file.last_seen,
+            file.first_seen,
             file.last_seen,
             0,
             0,
@@ -178,9 +178,9 @@ def test_save_files_empty_rows(store_db: WatcherStore) -> None:
 
 def test_save_file_existing_row_updated(store_db: WatcherStore) -> None:
     files = [
-        File("/home/user/magamind", "file1", 1618224000),
-        File("/home/user/magamind", "file2", 1618224000),
-        File("/home/user/magamind", "file3", 1618224000),
+        File("/home/user/magamind", "file1", 1618224000, 1618224000),
+        File("/home/user/magamind", "file2", 1618224000, 1618224000),
+        File("/home/user/magamind", "file3", 1618224000, 1618224000),
     ]
     print("first files", files[-1])
     store_db.save_files(files)
@@ -225,7 +225,7 @@ def test_save_file_add_new_row_with_existing_rows(store_db: WatcherStore) -> Non
     assert last_row[1:] == (
         new_file.root,
         new_file.filename,
-        new_file.last_seen,
+        new_file.first_seen,
         new_file.last_seen,
         0,
         0,
