@@ -17,13 +17,14 @@ BASE_DIR: Path = Path(__file__).resolve().parent
 TEST_DIR: Path = BASE_DIR / "smoketest_queues"
 FILE_COUNT_RANGE: tuple[int, int] = (1, 100)
 CHANCE_OF_FAILURE = 0.1  # out of 1.0
-MAX_SECONDS_TO_PROCESS = 30
+MAX_SECONDS_TO_PROCESS = 120
 
 # Time intervals in seconds
-FILE_CREATE_INTERVAL = 10
-FILE_MOVE_INTERVAL = 5
-RETRY_INTERVAL = 30
+FILE_CREATE_INTERVAL = 5
+FILE_MOVE_INTERVAL = 15
+RETRY_INTERVAL = 120
 OUTPUT_INTERVAL = 10
+CLEAR_DEADLETTER_INTERVAL = 900
 
 QUEUE_FOLDERS: dict[str, Any] = {
     "initial_documents": {
@@ -218,7 +219,7 @@ def thread_file_mover(directory_name: str, stop_flag: threading.Event) -> None:
                         _move_file(file, dead_letter, new_file_name)
 
 
-def thread_redrive(directory_name: str, stop_flag: threading.Event) -> None:
+def thread_redrive_retry(directory_name: str, stop_flag: threading.Event) -> None:
     """Move files from retry to the first queue directory."""
     folder = QUEUE_FOLDERS[directory_name]
     paths = folder["paths"]
@@ -233,6 +234,24 @@ def thread_redrive(directory_name: str, stop_flag: threading.Event) -> None:
 
         logger.debug("Redriving files in %s", retry)
         for file in retry.iterdir():
+            _move_file(file, paths[0])
+
+
+def thread_redrive_dead_letter(directory_name: str, stop_flag: threading.Event) -> None:
+    """Clear the deadletter queues on a regular cycle."""
+    folder = QUEUE_FOLDERS[directory_name]
+    paths = folder["paths"]
+    dead_letter = folder["dead_letter"]
+    next_run = time.time() + RETRY_INTERVAL
+
+    while not stop_flag.is_set():
+        if time.time() < next_run:
+            time.sleep(1)
+            continue
+        next_run = time.time() + CLEAR_DEADLETTER_INTERVAL
+
+        logger.debug("Redriving files in %s", dead_letter)
+        for file in dead_letter.iterdir():
             _move_file(file, paths[0])
 
 
@@ -308,7 +327,15 @@ def start_threads(
 
         threads.append(
             threading.Thread(
-                target=thread_redrive,
+                target=thread_redrive_retry,
+                args=(directory_name, stop_flag),
+            )
+        )
+        threads[-1].start()
+
+        threads.append(
+            threading.Thread(
+                target=thread_redrive_dead_letter,
                 args=(directory_name, stop_flag),
             )
         )
