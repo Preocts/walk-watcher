@@ -190,7 +190,6 @@ class Watcher:
 
     def _get_first_seen(self, filepath: str, now: int) -> int:
         """Return the int timestamp of when the file is first seen."""
-        # TODO: test this
         if self._config.treat_files_as_new:
             # Files are newly created between queues, safe to use ctime for timestamp
             return int(os.path.getctime(filepath))

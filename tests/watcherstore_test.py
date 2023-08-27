@@ -169,7 +169,7 @@ def test_save_files_empty_rows(store_db: WatcherStore) -> None:
             file.filename,
             file.first_seen,
             file.last_seen,
-            0,
+            file.last_seen - file.first_seen,
             0,
         )
         for row, file in zip(rows, files)
@@ -227,7 +227,7 @@ def test_save_file_add_new_row_with_existing_rows(store_db: WatcherStore) -> Non
         new_file.filename,
         new_file.first_seen,
         new_file.last_seen,
-        0,
+        new_file.last_seen - new_file.first_seen,
         0,
     )
 
