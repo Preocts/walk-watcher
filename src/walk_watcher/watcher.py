@@ -189,13 +189,17 @@ class Watcher:
         return files
 
     def _get_first_seen(self, filepath: str, now: int) -> int:
-        """Return the int timestamp of when the file is first seen."""
+        """
+        Defaults to returning now. If treat_files_as_new is set, returns ctime().
+
+        Raises:
+            FileNotFoundError
+        """
         if self._config.treat_files_as_new:
             # Files are newly created between queues, safe to use ctime for timestamp
             return int(os.path.getctime(filepath))
 
         # Files are moved between queues, Windows fails to report ctime correctly
-        # Use now in place of ctime.
         return now
 
     @staticmethod
