@@ -74,16 +74,16 @@ class Watcher:
             files = self._filter_on_filename(files)
 
             self.logger.debug("Filtering on directory...")
-            directories = self._filter_on_directory(files)
+            files = self._filter_on_directory(files)
 
             data_store.save_files(files)
 
-            self._add_directory_lines(data_store)
+            self._add_directory_file_count_lines(data_store)
+            self._add_directory_size_lines(data_store)
             self._add_file_lines(data_store)
 
         toc = time.perf_counter()
         self.logger.info("Watcher finished in %s seconds", toc - tic)
-        self.logger.info("Detected %s directories", len(directories))
         self.logger.info("Detected %s files", len(files))
 
     def emit(self) -> None:
@@ -96,8 +96,21 @@ class Watcher:
         toc = time.perf_counter()
         self.logger.info("Emitting finished in %s seconds", toc - tic)
 
-    def _add_directory_lines(self, datastore: WatcherStore) -> None:
-        """Add the directory lines to the emitter."""
+    def _add_directory_size_lines(self, datastore: WatcherStore) -> None:
+        """Add the directory lines with size in bytes to the emitter."""
+        directories = datastore.get_directories()
+        for directory in directories:
+            root = self._sanitize_directory_path(directory.root)
+            dimension = f"root={root}"
+            gauge_value = f"directory.size.bytes={directory.size_bytes}"
+            self._emitter.add_line(
+                metric_name=self._config.metric_name,
+                dimensions=[self._config.dimensions, dimension],
+                guage_values=[gauge_value],
+            )
+
+    def _add_directory_file_count_lines(self, datastore: WatcherStore) -> None:
+        """Add the directory lines with file count to the emitter."""
         directories = datastore.get_directories()
         for directory in directories:
             root = self._sanitize_directory_path(directory.root)
@@ -169,6 +182,7 @@ class Watcher:
             filepath = os.path.join(dirpath, filename)
             try:
                 firstseen = self._get_first_seen(filepath, now)
+                size_in_bytes = self._get_file_size_in_bytes(filepath)
 
             except FileNotFoundError:
                 # The file has been moved after the walk completed
@@ -179,8 +193,9 @@ class Watcher:
                 File(
                     root=dirpath,
                     filename=filename,
-                    last_seen=now,
                     first_seen=firstseen,
+                    last_seen=now,
+                    size_bytes=size_in_bytes,
                 )
             )
 
@@ -189,14 +204,27 @@ class Watcher:
         return files
 
     def _get_first_seen(self, filepath: str, now: int) -> int:
-        """Return the int timestamp of when the file is first seen."""
+        """
+        Defaults to returning now. If treat_files_as_new is set, returns ctime().
+
+        Raises:
+            FileNotFoundError
+        """
         if self._config.treat_files_as_new:
             # Files are newly created between queues, safe to use ctime for timestamp
             return int(os.path.getctime(filepath))
 
         # Files are moved between queues, Windows fails to report ctime correctly
-        # Use now in place of ctime.
         return now
+
+    def _get_file_size_in_bytes(self, filepath: str) -> int:
+        """
+        Return the reported file size of the file.
+
+        Raises:
+            FileNotFoundError
+        """
+        return os.path.getsize(filepath)
 
     @staticmethod
     def _sanitize_directory_path(path: str) -> str:

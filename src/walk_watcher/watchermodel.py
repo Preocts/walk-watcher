@@ -19,8 +19,9 @@ class File:
 
     root: str
     filename: str
+    first_seen: int
     last_seen: int
-    first_seen: int = 0
+    size_bytes: int = 0
     age_seconds: int = 0
     removed: int = 0
 
@@ -30,6 +31,6 @@ class File:
 
         return (
             f"{self.root}/{self.filename}"
-            f" ({self.age_seconds} seconds old, last seen {lastseen})"
+            f" ({self.age_seconds} seconds old, {self.size_bytes} bytes, last seen {lastseen})"
             f" {'(removed)' if self.removed else '(present)'}"
         )

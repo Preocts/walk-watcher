@@ -6,10 +6,10 @@ from walk_watcher.watchermodel import File
 
 
 def test_model_file_str() -> None:
-    file_present = File("/foo/bar", "baz.txt", 1234568190, 1234567890, 300, 0)
-    file_removed = File("/foo/bar", "baz.txt", 1234568190, 1234567890, 300, 1)
+    file_present = File("/foo/bar", "baz.txt", 1234567890, 1234568190, 100, 300, 0)
+    file_removed = File("/foo/bar", "baz.txt", 1234567890, 1234568190, 100, 300, 1)
     expected_ts = datetime.fromtimestamp(1234568190).strftime("%Y-%m-%d %H:%M:%S")
-    expected = f"/foo/bar/baz.txt (300 seconds old, last seen {expected_ts})"
+    expected = f"/foo/bar/baz.txt (300 seconds old, 100 bytes, last seen {expected_ts})"
     expected_preset = "(present)"
     expected_removed = "(removed)"
 

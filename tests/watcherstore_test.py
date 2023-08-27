@@ -15,20 +15,20 @@ MAX_IS_RUNNING_AGE = 5 * 60  # 5 minutes
 
 # Predefine some rows for testing.
 NOW_TS = int(datetime.now().timestamp())
-THIRTYONE_DAYS = 31 * 24 * 60 * 60
-NOW_TX_PLUS_31_DAYS = NOW_TS - THIRTYONE_DAYS
+THIRTY_DAYS = 30 * 24 * 60 * 60
+THIRTY_DAYS_AGO = NOW_TS - THIRTY_DAYS
 
 FILE_ROWS = [
-    [1, "/home/user/obiwan", "file1", NOW_TS, NOW_TS + 3, 3, 0],
-    [2, "/home/user/obiwan", "file2", NOW_TS, NOW_TS, 1, 0],
-    [3, "/home/user/obiwan", "file3", NOW_TS, NOW_TX_PLUS_31_DAYS, THIRTYONE_DAYS, 1],
-    [4, "/home/user/luke", "file1", NOW_TS, NOW_TS, 1, 0],
-    [5, "/home/user/luke", "file2", NOW_TS, NOW_TS + 4, 4, 0],
-    [6, "/home/user/luke", "file3", NOW_TS, NOW_TX_PLUS_31_DAYS, THIRTYONE_DAYS, 1],
+    [1, "/home/user/obiwan", "file1", NOW_TS - 3, NOW_TS, 100, 3, 0],
+    [2, "/home/user/obiwan", "file2", NOW_TS, NOW_TS, 100, 0, 0],
+    [3, "/home/user/obiwan", "file3", THIRTY_DAYS_AGO, NOW_TS, 0, THIRTY_DAYS, 1],
+    [4, "/home/user/luke", "file1", NOW_TS, NOW_TS, 100, 0, 0],
+    [5, "/home/user/luke", "file2", NOW_TS - 4, NOW_TS, 100, 4, 0],
+    [6, "/home/user/luke", "file3", THIRTY_DAYS_AGO, NOW_TS, 0, THIRTY_DAYS, 1],
 ]
 EXPECTED_DIRECTORIES: Any = [
-    ["/home/user/obiwan", 2, 0],
-    ["/home/user/luke", 2, 0],
+    ["/home/user/obiwan", 2, 200],
+    ["/home/user/luke", 2, 200],
 ]
 
 
@@ -47,7 +47,7 @@ def store_db_full() -> WatcherStore:
         max_is_running_age=MAX_IS_RUNNING_AGE,
     )
     db._connection.executemany(
-        "INSERT INTO files VALUES (?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO files VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
         FILE_ROWS,
     )
     db._connection.commit()
@@ -151,10 +151,11 @@ def test_end_run_updates_system_table(store_db: WatcherStore) -> None:
 
 
 def test_save_files_empty_rows(store_db: WatcherStore) -> None:
+    """Assert save works on an empty database."""
     files = [
-        File("/home/user/magamind", "file1", 1618224000),
-        File("/home/user/magamind", "file2", 1618224000),
-        File("/home/user/magamind", "file3", 1618224000),
+        File("/home/user/magamind", "file1", 1618224000, 1618224000, 100),
+        File("/home/user/magamind", "file2", 1618224000, 1618224000, 100),
+        File("/home/user/magamind", "file3", 1618224000, 1618224000, 100),
     ]
     store_db.save_files(files)
     cursor = store_db._connection.cursor()
@@ -162,25 +163,26 @@ def test_save_files_empty_rows(store_db: WatcherStore) -> None:
     rows = cursor.fetchall()
 
     assert len(rows) == len(files)
-    assert all(
-        row[1:]
-        == (
-            file.root,
-            file.filename,
-            file.first_seen,
-            file.last_seen,
-            file.last_seen - file.first_seen,
-            0,
+
+    for row, file_ in zip(rows, files):
+        file_tup = (
+            file_.root,
+            file_.filename,
+            file_.first_seen,
+            file_.last_seen,
+            file_.size_bytes,
+            file_.last_seen - file_.first_seen,
+            file_.removed,
         )
-        for row, file in zip(rows, files)
-    )
+
+        assert file_tup == row[1:]
 
 
 def test_save_file_existing_row_updated(store_db: WatcherStore) -> None:
     files = [
-        File("/home/user/magamind", "file1", 1618224000, 1618224000),
-        File("/home/user/magamind", "file2", 1618224000, 1618224000),
-        File("/home/user/magamind", "file3", 1618224000, 1618224000),
+        File("/home/user/magamind", "file1", 1618224000, 1618224000, 0),
+        File("/home/user/magamind", "file2", 1618224000, 1618224000, 0),
+        File("/home/user/magamind", "file3", 1618224000, 1618224000, 0),
     ]
     print("first files", files[-1])
     store_db.save_files(files)
@@ -192,28 +194,30 @@ def test_save_file_existing_row_updated(store_db: WatcherStore) -> None:
         File(
             root=popped_file.root,
             filename=popped_file.filename,
+            first_seen=popped_file.first_seen,
             last_seen=popped_file.last_seen + new_age,
+            size_bytes=popped_file.size_bytes + new_age,
         )
     )
     store_db.save_files(files)
 
     cursor = store_db._connection.cursor()
-    cursor.execute("SELECT last_seen, age_seconds FROM files")
+    cursor.execute("SELECT last_seen, age_seconds, size_bytes FROM files")
     last_row = cursor.fetchall()[-1]
 
-    assert last_row == (files[-1].last_seen, new_age)
+    assert last_row == (files[-1].last_seen, new_age, new_age)
 
 
 def test_save_file_add_new_row_with_existing_rows(store_db: WatcherStore) -> None:
     files = [
-        File("/home/user/magamind", "file1", 1618224000),
-        File("/home/user/magamind", "file2", 1618224000),
-        File("/home/user/magamind", "file3", 1618224000),
+        File("/home/user/magamind", "file1", 1618224000, 1618224000),
+        File("/home/user/magamind", "file2", 1618224000, 1618224000),
+        File("/home/user/magamind", "file3", 1618224000, 1618224000),
     ]
     store_db.save_files(files)
 
     # Add a new file with a different root and filename
-    new_file = File("new_root", "new_file", 1234567890)
+    new_file = File("new_root", "new_file", 1234567890, 1234567890)
     files.append(new_file)
 
     store_db.save_files(files)
@@ -227,6 +231,7 @@ def test_save_file_add_new_row_with_existing_rows(store_db: WatcherStore) -> Non
         new_file.filename,
         new_file.first_seen,
         new_file.last_seen,
+        new_file.size_bytes,
         new_file.last_seen - new_file.first_seen,
         0,
     )
@@ -234,9 +239,9 @@ def test_save_file_add_new_row_with_existing_rows(store_db: WatcherStore) -> Non
 
 def test_save_files_marks_all_removed(store_db: WatcherStore) -> None:
     files = [
-        File("/home/user/magamind", "file1", 1618224000),
-        File("/home/user/magamind", "file2", 1618224000),
-        File("/home/user/magamind", "file3", 1618224000),
+        File("/home/user/magamind", "file1", 1618224000, 1618224000),
+        File("/home/user/magamind", "file2", 1618224000, 1618224000),
+        File("/home/user/magamind", "file3", 1618224000, 1618224000),
     ]
     store_db.save_files(files)
 
@@ -266,8 +271,10 @@ def test_get_oldest_files(store_db_full: WatcherStore) -> None:
     assert len(rows) == 2
     assert rows[0].root == "/home/user/luke"
     assert rows[0].filename == "file2"
+    assert rows[0].age_seconds == 4
     assert rows[1].root == "/home/user/obiwan"
     assert rows[1].filename == "file1"
+    assert rows[1].age_seconds == 3
 
 
 def test_clean_removed_files(store_db_full: WatcherStore) -> None:

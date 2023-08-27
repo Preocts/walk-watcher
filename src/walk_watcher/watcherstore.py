@@ -100,6 +100,7 @@ class WatcherStore:
                 filename TEXT NOT NULL,
                 first_seen INTEGER NOT NULL,
                 last_seen INTEGER NOT NULL,
+                size_bytes INTEGER NOT NULL,
                 age_seconds INTEGER NOT NULL,
                 removed INTEGER NOT NULL,
                 UNIQUE(root, filename)
@@ -198,9 +199,9 @@ class WatcherStore:
         self.logger.debug("Inserting %s files", len(files))
         cursor.executemany(
             """
-            INSERT OR IGNORE INTO files (root, filename, first_seen,
-                last_seen, age_seconds, removed)
-            VALUES (?, ?, ?, ?, ?, 0)
+            INSERT OR IGNORE INTO files (root, filename, first_seen, last_seen,
+                size_bytes, age_seconds, removed)
+            VALUES (?, ?, ?, ?, ?, ?, 0)
             """,
             [
                 (
@@ -208,6 +209,7 @@ class WatcherStore:
                     file.filename,
                     file.first_seen,
                     file.last_seen,
+                    file.size_bytes,
                     file.last_seen - file.first_seen,
                 )
                 for file in files
@@ -220,11 +222,21 @@ class WatcherStore:
         cursor.executemany(
             """
             UPDATE files
-            SET last_seen = ?, removed = 0, age_seconds = ? - first_seen
+            SET
+                last_seen = ?,
+                size_bytes = ?,
+                age_seconds = ? - first_seen,
+                removed = 0
             WHERE root = ? AND filename = ?
             """,
             [
-                (file.last_seen, file.last_seen, file.root, file.filename)
+                (
+                    file.last_seen,
+                    file.size_bytes,
+                    file.last_seen,
+                    file.root,
+                    file.filename,
+                )
                 for file in files
             ],
         )
@@ -237,13 +249,13 @@ class WatcherStore:
                 """
                 WITH ptn_files AS
                     (
-                        SELECT root, filename, last_seen, first_seen, age_seconds,
+                        SELECT root, filename, first_seen, last_seen, size_bytes, age_seconds,
                             ROW_NUMBER() OVER
                                 ( PARTITION BY root ORDER BY age_seconds DESC ) rn
                         FROM files
                         WHERE removed = 0
                     )
-                SELECT root, filename, first_seen, last_seen, age_seconds
+                SELECT root, filename, first_seen, last_seen, size_bytes, age_seconds
                 FROM ptn_files
                 WHERE rn = 1
                 ORDER BY age_seconds DESC
@@ -254,12 +266,11 @@ class WatcherStore:
 
     def get_directories(self) -> list[Directory]:
         """Get unique directories from files table with directory size in bytes."""
-        # TODO: size in bytes will be added after removal of the directory table
         self.logger.debug("Getting directories")
         with closing(self._connection.cursor()) as cursor:
             cursor.execute(
                 """
-                SELECT root, COUNT(root), 0 FROM files
+                SELECT root, COUNT(root), SUM(size_bytes) FROM files
                 WHERE removed = 0
                 GROUP BY root
                 """
