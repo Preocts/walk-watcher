@@ -76,14 +76,13 @@ optional arguments:
 
 ### \[system\]
 
-| key                         | value                                                                                                             |
-| --------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `config_name`               | A unique name for the configuration                                                                               |
-| `database_path`             | Name and path of the sqlite3 database file. Used for file age tracking. Set to `:memory:` for in-memory database. |
-| `oldest_directory_row_days` | Rows in the directory table are discarded after N days                                                            |
-| `oldest_file_row_days`      | Rows in the file table are discarded after N days                                                                 |
-| `max_is_running_seconds`    | Time before the database lock expires. Prevents jobs from attempting to access the sqlite3 simultaneously.        |
-| `max_emit_line_count`       | Maximum number of metric lines emitted in a single batch.                                                         |
+| key                      | value                                                                                                             |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------- |
+| `config_name`            | A unique name for the configuration                                                                               |
+| `database_path`          | Name and path of the sqlite3 database file. Used for file age tracking. Set to `:memory:` for in-memory database. |
+| `max_is_running_seconds` | Time before the database lock expires. Prevents jobs from attempting to access the sqlite3 simultaneously.        |
+| `max_emit_line_count`    | Maximum number of metric lines emitted in a single batch.                                                         |
+| `treat_files_as_new`     | When true, create time is used for first_seen.                                                                    |
 
 ### \[intervals\]
 
@@ -248,49 +247,6 @@ To deactivate (exit) the `venv`:
 
 ```console
 $ deactivate
-```
-
----
-
-## Updating dependencies
-
-New dependencys can be added to the `requirements-*.in` file. It is recommended
-to only use pins when specific versions or upgrades beyond a certain version are
-to be avoided. Otherwise, allow `pip-compile` to manage the pins in the
-generated `requirements-*.txt` files.
-
-Once updated following the steps below, the package can be installed if needed.
-
-### With Makefile
-
-To update the generated files with a dependency:
-
-```console
-make update-dev
-```
-
-To attempt to upgrade all generated dependencies:
-
-```console
-make upgrade-dev
-```
-
-### Without Makefile
-
-To update the generated files with a dependency:
-
-```console
-pip-compile --no-emit-index-url requirements/requirements.in
-pip-compile --no-emit-index-url requirements/requirements-dev.in
-pip-compile --no-emit-index-url requirements/requirements-test.in
-```
-
-To attempt to upgrade all generated dependencies:
-
-```console
-pip-compile --upgrade --no-emit-index-url requirements/requirements.in
-pip-compile --upgrade --no-emit-index-url requirements/requirements-dev.in
-pip-compile --upgrade --no-emit-index-url requirements/requirements-test.in
 ```
 
 ---
