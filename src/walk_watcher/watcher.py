@@ -70,12 +70,6 @@ class Watcher:
         with self._store as data_store:
             files = self._walk_directories()
 
-            self.logger.debug("Filtering on filename...")
-            files = self._filter_on_filename(files)
-
-            self.logger.debug("Filtering on directory...")
-            files = self._filter_on_directory(files)
-
             data_store.save_files(files)
 
             self._add_directory_file_count_lines(data_store)
@@ -136,23 +130,21 @@ class Watcher:
                 guage_values=[guage_value],
             )
 
-    def _filter_on_filename(self, files: list[File]) -> list[File]:
-        """Filter the given files based on the config."""
-        if not self._config.exclude_file_pattern:
-            return files
+    def _is_ignored_filename(self, filename: str) -> bool:
+        """True if the filename is in the excluded pattern."""
+        ptn = self._config.exclude_file_pattern
+        if ptn and re.search(ptn, filename):
+            return True
 
-        exlude_ptn = re.compile(self._config.exclude_file_pattern)
+        return False
 
-        return [file for file in files if not exlude_ptn.search(file.filename)]
+    def _is_ignored_directory(self, dirpath: str) -> bool:
+        """True if the directory path is in the excluded pattern."""
+        ptn = self._config.exclude_directory_pattern
+        if ptn and re.search(ptn, dirpath):
+            return True
 
-    def _filter_on_directory(self, files: list[File]) -> list[File]:
-        """Filter the given directories based on the config."""
-        if not self._config.exclude_directory_pattern:
-            return files
-
-        exlude_ptn = re.compile(self._config.exclude_directory_pattern)
-
-        return [file for file in files if not exlude_ptn.search(file.root)]
+        return False
 
     def _walk_directories(self) -> list[File]:
         """
@@ -169,6 +161,10 @@ class Watcher:
             self.logger.debug("Walking directory: %s", root)
 
             for dirpath, _, filenames in os.walk(root):
+                if self._is_ignored_directory(dirpath):
+                    self.logger.debug("Ignoring directory '%s'", root)
+                    continue
+
                 files.extend(self._build_file_models(dirpath, filenames))
 
         return files
@@ -179,7 +175,12 @@ class Watcher:
         files: list[File] = []
 
         for filename in filenames:
+            if self._is_ignored_filename(filename):
+                self.logger.debug("Ignoring file `%s`", filename)
+                continue
+
             filepath = os.path.join(dirpath, filename)
+
             try:
                 firstseen = self._get_first_seen(filepath, now)
                 size_in_bytes = self._get_file_size_in_bytes(filepath)
