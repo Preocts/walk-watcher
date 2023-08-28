@@ -7,7 +7,6 @@ from unittest.mock import patch
 import pytest
 
 from walk_watcher.watcher import Watcher
-from walk_watcher.watchermodel import File
 
 
 @pytest.fixture
@@ -35,49 +34,41 @@ def test_walk_directory(watcher: Watcher) -> None:
         with patch.object(watcher._config, "remove_prefix", ""):
             all_files = watcher._walk_directories()
 
-    assert len(all_files) == 3
+    # directory02 is ignored
+    # file01 is ignored
+    assert len(all_files) == 1
 
     for file in all_files:
         assert file.root.startswith(root)
 
 
-def test_filter_files(watcher: Watcher) -> None:
-    mock_files = [
-        File("/foo/bar", "file01.txt", 1234567890, 1234567890, 0, 0),
-        File("/foo/bar", "file02.txt", 1234567890, 1234567890, 0, 0),
-    ]
+def test_is_ignored_file(watcher: Watcher) -> None:
     with patch.object(watcher._config, "exclude_file_pattern", "file0.*"):
-        result_all = watcher._filter_on_filename(mock_files)
+        result = watcher._is_ignored_filename("file01.txt")
 
-    with patch.object(watcher._config, "exclude_file_pattern", "file01"):
-        result_one = watcher._filter_on_filename(mock_files)
+    assert result is True
 
     with patch.object(watcher._config, "exclude_file_pattern", ""):
-        result_none = watcher._filter_on_filename(mock_files)
+        result = watcher._is_ignored_filename("file01.txt")
 
-    assert len(result_all) == 0
-    assert len(result_one) == 1
-    assert len(result_none) == 2
+    assert result is False
 
 
-def test_filter_directories(watcher: Watcher) -> None:
-    mock_files = [
-        File("/foo", "file01.txt", 1234567890, 1234567890, 0, 0),
-        File("/foo/bar", "file02.txt", 1234567890, 1234567890, 0, 0),
-        File("/foo/bar/baz", "file03.txt", 1234567890, 1234567890, 0, 0),
-    ]
+def test_is_ignored_directory(watcher: Watcher) -> None:
     with patch.object(watcher._config, "exclude_directory_pattern", r"\/foo$|\/bar"):
-        result_all = watcher._filter_on_directory(mock_files)
+        result = watcher._is_ignored_directory("/foo")
+
+    assert result is True
 
     with patch.object(watcher._config, "exclude_directory_pattern", r"\/bar"):
-        result_one = watcher._filter_on_directory(mock_files)
+        result = watcher._is_ignored_directory("/foo/bar/baz")
+
+    assert result is True
 
     with patch.object(watcher._config, "exclude_directory_pattern", ""):
-        result_none = watcher._filter_on_directory(mock_files)
+        result = watcher._is_ignored_directory("/foo/bar/baz")
 
-    assert len(result_all) == 0
-    assert len(result_one) == 1
-    assert len(result_none) == 3
+    assert result is False
 
 
 def test_emit_calls_emitter(watcher: Watcher) -> None:
