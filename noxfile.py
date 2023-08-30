@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import os
-import sys
+import pathlib
+import shutil
 
 import nox
 
@@ -10,26 +10,24 @@ MODULE_NAME = "walk_watcher"
 TESTS_PATH = "tests"
 COVERAGE_FAIL_UNDER = 100
 REQUIREMENT_IN_FILES = [
-    os.path.join("requirements", "requirements.in"),
-    os.path.join("requirements", "requirements-dev.in"),
-    os.path.join("requirements", "requirements-test.in"),
+    pathlib.Path("requirements/requirements.in"),
+    pathlib.Path("requirements/requirements-dev.in"),
+    pathlib.Path("requirements/requirements-test.in"),
 ]
 
-# What are we allowed to clean (delete)?
-CLEAN_DIRS = [
-    "__pycache__",
-    ".mypy_cache",
-    ".pytest_cache",
-    ".coverage",
-    ".nox",
-    "dist",
-    "build",
-]
-CLEAN_FILES = [
-    "*.pyc",
-    "*.pyo",
-    "coverage.json",
-    ".coverage.*",
+# What we allowed to clean (delete)
+CLEANABLE_TARGETS = [
+    "./**/__pycache__",
+    "./**/.mypy_cache",
+    "./**/.pytest_cache",
+    "./**/.coverage",
+    "./**/.nox",
+    "./**/dist",
+    "./**/build",
+    "./**/*.pyc",
+    "./**/*.pyo",
+    "./**/coverage.json",
+    "./**/.coverage.*",
 ]
 
 
@@ -100,22 +98,18 @@ def build(session: nox.Session) -> None:
 
 
 @nox.session(python=False)
-def clean(session: nox.Session) -> None:
-    """Clean cache, .pyc, .pyo, and artifact files from project."""
-    if sys.platform.startswith("win"):
-        print("Windows unsupported at this time.")
-        return None
+def clean(_: nox.Session) -> None:
+    """Clean cache, .pyc, .pyo, and test/build artifact files from project."""
+    count = 0
+    for searchpath in CLEANABLE_TARGETS:
+        for filepath in pathlib.Path(".").glob(searchpath):
+            if filepath.is_dir():
+                shutil.rmtree(filepath)
+            else:
+                filepath.unlink()
+            count += 1
 
-    elif sys.platform in ["linux", "darwin"]:
-        for dirpath in CLEAN_DIRS:
-            session.run("find", ".", "-name", dirpath, "-exec", "rm", "-rf", "{}", "+")
-
-        for file in CLEAN_FILES:
-            session.run("find", ".", "-name", file, "-exec", "rm", "-f", "{}", "+")
-
-    else:
-        print("Unknown OS for this session.")
-        return None
+    print(f"{count} files cleaned.")
 
 
 def print_standard_logs(session: nox.Session) -> None:
