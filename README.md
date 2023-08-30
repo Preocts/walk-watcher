@@ -151,28 +151,12 @@ the desired version while creating the `venv`. (e.g. `python3` or `python3.8`)
 
 ## Installation steps
 
-### Makefile
-
-This repo has a Makefile with some quality of life scripts if the system
-supports `make`.  Please note there are no checks for an active `venv` in the
-Makefile.  If you are on Windows you can install make using scoop or chocolatey.
-
-| PHONY         | Description                                                           |
-| ------------- | --------------------------------------------------------------------- |
-| `install-dev` | install development/test requirements and project as editable install |
-| `coverage`    | Run tests with coverage, generate console report                      |
-| `docker-test` | Run coverage and tests in a docker container.                         |
-| `build-dist`  | Build source distribution and wheel distribution                      |
-| `clean`       | Deletes build, nox, coverage, pytest, mypy, cache, and pyc artifacts  |
-
-
 Clone this repo and enter root directory of repo:
 
 ```console
 $ git clone https://github.com/Preocts/walk-watcher
 $ cd walk-watcher
 ```
-
 
 Create the `venv`:
 
@@ -194,14 +178,6 @@ The command prompt should now have a `(venv)` prefix on it. `python` will now
 call the version of the interpreter used to create the `venv`
 
 Install editable library and development requirements:
-
-### With Makefile:
-
-```console
-make install-dev
-```
-
-### Without Makefile:
 
 ```console
 $ python -m pip install --editable .[dev,test]
