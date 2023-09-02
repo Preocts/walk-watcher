@@ -67,9 +67,9 @@ class Watcher:
         self.logger.info("Running watcher...")
         tic = time.perf_counter()
 
-        with self._store as data_store:
-            files = self._walk_directories()
+        files = self._walk_directories()
 
+        with self._store as data_store:
             data_store.save_files(files)
 
             self._add_directory_file_count_lines(data_store)
