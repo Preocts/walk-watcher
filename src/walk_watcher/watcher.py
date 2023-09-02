@@ -118,6 +118,7 @@ class Watcher:
         """Add the directory lines with file count to the emitter."""
         directories = datastore.get_directories()
         directories.extend(empty_dirs)
+
         for directory in directories:
             root = self._sanitize_directory_path(directory.root)
             dimension = f"root={root}"
