@@ -7,6 +7,7 @@ import time
 
 from .watcherconfig import WatcherConfig
 from .watcheremitter import WatcherEmitter
+from .watchermodel import Directory
 from .watchermodel import File
 from .watcherstore import WatcherStore
 
@@ -67,13 +68,13 @@ class Watcher:
         self.logger.info("Running watcher...")
         tic = time.perf_counter()
 
-        files = self._walk_directories()
+        files, empty_dirs = self._walk_directories()
 
         with self._store as data_store:
             data_store.save_files(files)
 
-            self._add_directory_file_count_lines(data_store)
-            self._add_directory_size_lines(data_store)
+            self._add_directory_file_count_lines(data_store, empty_dirs)
+            self._add_directory_size_lines(data_store, empty_dirs)
             self._add_file_lines(data_store)
 
         toc = time.perf_counter()
@@ -90,9 +91,15 @@ class Watcher:
         toc = time.perf_counter()
         self.logger.info("Emitting finished in %s seconds", toc - tic)
 
-    def _add_directory_size_lines(self, datastore: WatcherStore) -> None:
+    def _add_directory_size_lines(
+        self,
+        datastore: WatcherStore,
+        empty_dirs: list[Directory],
+    ) -> None:
         """Add the directory lines with size in bytes to the emitter."""
         directories = datastore.get_directories()
+        directories.extend(empty_dirs)
+
         for directory in directories:
             root = self._sanitize_directory_path(directory.root)
             dimension = f"root={root}"
@@ -103,9 +110,14 @@ class Watcher:
                 guage_values=[gauge_value],
             )
 
-    def _add_directory_file_count_lines(self, datastore: WatcherStore) -> None:
+    def _add_directory_file_count_lines(
+        self,
+        datastore: WatcherStore,
+        empty_dirs: list[Directory],
+    ) -> None:
         """Add the directory lines with file count to the emitter."""
         directories = datastore.get_directories()
+        directories.extend(empty_dirs)
         for directory in directories:
             root = self._sanitize_directory_path(directory.root)
             dimension = f"root={root}"
@@ -146,16 +158,17 @@ class Watcher:
 
         return False
 
-    def _walk_directories(self) -> list[File]:
+    def _walk_directories(self) -> tuple[list[File], list[Directory]]:
         """
-        Walk the root directory and return the directories and files.
+        Walk the root directory and return the files and empty directories.
 
         Returns:
-            A tuple of directories and files.
+            A tuple of files and empty directories.
         """
         target_directories = self._config.root_directories
 
         files: list[File] = []
+        empty_dirs: list[Directory] = []
 
         for root in target_directories:
             self.logger.debug("Walking directory: %s", root)
@@ -165,9 +178,15 @@ class Watcher:
                     self.logger.debug("Ignoring directory '%s'", root)
                     continue
 
-                files.extend(self._build_file_models(dirpath, filenames))
+                file_models = self._build_file_models(dirpath, filenames)
 
-        return files
+                # Track empty directories that were not ignored
+                if not len(file_models):
+                    empty_dirs.append(Directory(dirpath, 0, 0))
+
+                files.extend(file_models)
+
+        return files, empty_dirs
 
     def _build_file_models(self, dirpath: str, filenames: list[str]) -> list[File]:
         """Parses the filenames into File objects."""
