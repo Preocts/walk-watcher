@@ -86,7 +86,7 @@ class Watcher:
         self.logger.info("Emitting metrics...")
         tic = time.perf_counter()
 
-        self._emitter.emit()
+        self._emitter.emit(batch_size=self._config.max_emit_line_count)
 
         toc = time.perf_counter()
         self.logger.info("Emitting finished in %s seconds", toc - tic)
