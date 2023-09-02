@@ -32,14 +32,17 @@ def test_walk_directory(watcher: Watcher) -> None:
 
     with patch.object(watcher._config, "root_directories", [root, "mock/dir"]):
         with patch.object(watcher._config, "remove_prefix", ""):
-            all_files = watcher._walk_directories()
+            all_files, empty_dirs = watcher._walk_directories()
 
     # directory02 is ignored
     # file01 is ignored
     assert len(all_files) == 1
+    assert len(empty_dirs) == 2
 
     for file in all_files:
         assert file.root.startswith(root)
+
+    assert empty_dirs[0].root.startswith(root)
 
 
 def test_is_ignored_file(watcher: Watcher) -> None:

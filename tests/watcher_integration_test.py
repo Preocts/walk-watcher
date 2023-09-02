@@ -19,3 +19,8 @@ def test_integration_against_fixture_directory() -> None:
 
     cursor.execute("SELECT is_running FROM system")
     assert cursor.fetchone()[0] == 0
+
+    # 5 lines expected from fixture setup
+    # 2 directories with size/count = 4
+    # 1 file age = 1
+    assert len(watcher._emitter._metric_lines) == 5
