@@ -17,4 +17,3 @@ RUN python -m pip install --upgrade nox --no-cache-dir
 COPY . /src
 
 CMD ["nox"]
-
