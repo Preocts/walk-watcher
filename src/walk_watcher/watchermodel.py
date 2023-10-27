@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import dataclasses
-from datetime import datetime
 
 
 @dataclasses.dataclass(frozen=True)
@@ -24,13 +23,3 @@ class File:
     size_bytes: int = 0
     age_seconds: int = 0
     removed: int = 0
-
-    def __str__(self) -> str:
-        """Return a string representation of the file."""
-        lastseen = datetime.fromtimestamp(self.last_seen).strftime("%Y-%m-%d %H:%M:%S")
-
-        return (
-            f"{self.root}/{self.filename}"
-            f" ({self.age_seconds} seconds old, {self.size_bytes} bytes, last seen {lastseen})"
-            f" {'(removed)' if self.removed else '(present)'}"
-        )
