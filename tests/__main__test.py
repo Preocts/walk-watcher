@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+from pathlib import Path
 from unittest.mock import patch
 
 from walk_watcher import __main__
@@ -45,3 +47,23 @@ def test_main_create_config():
 
     assert result == 0
     mock_watcher.assert_called_once_with("tests/new_test_config.ini")
+
+
+def test_main_creates_log_file_with_config():
+    cli_args = ["tests/test_config.ini", "--log-file"]
+
+    try:
+        with patch("walk_watcher.__main__.Watcher.run_once") as mock_watcher:
+            result = __main__.main(cli_args=cli_args)
+
+        assert result == 0
+        assert mock_watcher.call_count == 1
+        assert Path("tests/test_config.log").exists()
+
+    finally:
+        for handler in logging.root.handlers:
+            if isinstance(handler, logging.FileHandler):
+                handler.close()
+                logging.root.handlers.remove(handler)
+
+        Path("tests/test_config.log").unlink(missing_ok=True)
