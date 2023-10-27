@@ -51,7 +51,7 @@ $ pip install git+https://github.com/Preocts/walk-watcher@x.x.x
 
 ```console
 $ walk-watcher --help
-usage: walk-watcher [-h] [--loop] [--debug] [--make-config] config
+usage: walk-watcher [-h] [--loop] [--debug] [--log-file] [--make-config] config
 
 Watch directories for file count and oldest file age. Emit to configured destinations.
 
@@ -62,6 +62,7 @@ optional arguments:
   -h, --help     show this help message and exit
   --loop         Run the watcher in a loop. Default: False (block until exit).
   --debug        Enable debug logging.
+  --log-file     Enable logging to a file next to the config file.
   --make-config  Create a default configuration file.
 ```
 
