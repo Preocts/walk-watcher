@@ -6,8 +6,8 @@ from contextlib import closing
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from .watchermodel import Directory
-from .watchermodel import File
+from walk_watcher.watchermodel import Directory
+from walk_watcher.watchermodel import File
 
 if TYPE_CHECKING:
     from types import TracebackType
