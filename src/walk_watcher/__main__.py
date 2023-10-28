@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import importlib.metadata
 import logging
 from pathlib import Path
 
@@ -17,6 +18,13 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Watch directories for file count and oldest file age. Emit to configured destinations.",
     )
+
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=f"%(prog)s {importlib.metadata.version('walk_watcher')}",
+    )
+
     parser.add_argument(
         "config",
         type=str,
