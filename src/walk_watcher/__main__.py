@@ -4,9 +4,9 @@ import argparse
 import logging
 from pathlib import Path
 
-from . import Watcher
-from . import WatcherConfig
-from .watcherconfig import write_new_config
+from walk_watcher.watcher import Watcher
+from walk_watcher.watcherconfig import WatcherConfig
+from walk_watcher.watcherconfig import write_new_config
 
 LOG_FORMAT = "%(asctime)s %(levelname)s %(message)s"
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S"

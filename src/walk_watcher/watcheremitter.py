@@ -7,7 +7,7 @@ import re
 from collections import deque
 from datetime import datetime
 
-from .watcherconfig import WatcherConfig
+from walk_watcher.watcherconfig import WatcherConfig
 
 
 @dataclasses.dataclass(frozen=True)

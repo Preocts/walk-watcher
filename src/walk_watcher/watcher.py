@@ -5,11 +5,11 @@ import os
 import re
 import time
 
-from .watcherconfig import WatcherConfig
-from .watcheremitter import WatcherEmitter
-from .watchermodel import Directory
-from .watchermodel import File
-from .watcherstore import WatcherStore
+from walk_watcher.watcherconfig import WatcherConfig
+from walk_watcher.watcheremitter import WatcherEmitter
+from walk_watcher.watchermodel import Directory
+from walk_watcher.watchermodel import File
+from walk_watcher.watcherstore import WatcherStore
 
 
 class Watcher:
