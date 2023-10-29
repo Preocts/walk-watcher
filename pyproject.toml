@@ -1,5 +1,7 @@
 [build-system]
-requires = ["setuptools", "wheel"]
+requires = [
+    "setuptools",
+]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -9,7 +11,9 @@ requires-python = ">=3.8"
 description = "Watches directories and files."
 readme = "README.md"
 license = { file = "LICENSE" }
-authors = [{ email = "preocts@preocts.com", name = "Preocts" }]
+authors = [
+    { email = "preocts@preocts.com", name = "Preocts" },
+]
 maintainers = []
 keywords = []
 classifiers = [
@@ -18,31 +22,35 @@ classifiers = [
     "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Python :: Implementation :: CPython",
 ]
-dependencies = []
-
-[project.optional-dependencies]
-dev = [
-    "pre-commit",
-    "black",
-    "mypy",
-    "flake8",
-    "flake8-builtins",
-    "flake8-pep585",
+dynamic = [
+    "dependencies",
+    "optional-dependencies",
 ]
-test = ["pytest", "pytest-randomly", "coverage", "nox"]
+
+[tool.setuptools.dynamic.dependencies]
+file = [
+    "requirements/requirements.txt",
+]
+
+[tool.setuptools.dynamic.optional-dependencies]
+dev = { file = [
+        "requirements/requirements-dev.txt",
+    ] }
+test = { file = [
+        "requirements/requirements-test.txt",
+    ] }
 
 [project.urls]
 homepage = "https://github.com/Preocts/walk-watcher"
-# documentation = ""
-# repository = ""
-# changelog = ""
 
 # CLI scripts if needed
 [project.scripts]
 walk-watcher = "walk_watcher.__main__:main"
 
 [tool.setuptools.package-data]
-"walk_watcher" = ["py.typed"]
+"walk_watcher" = [
+    "py.typed",
+]
 
 [tool.mypy]
 check_untyped_defs = true
@@ -61,12 +69,22 @@ warn_unused_ignores = false
 
 [tool.coverage.run]
 branch = true
-source = ["tests"]
-source_pkgs = ["walk_watcher"]
+source = [
+    "tests",
+]
+source_pkgs = [
+    "walk_watcher",
+]
 
 [tool.coverage.paths]
-source = ["src/", "*/site-packages"]
-test = ["tests/", "*/tests"]
+source = [
+    "src/",
+    "*/site-packages",
+]
+test = [
+    "tests/",
+    "*/tests",
+]
 
 [tool.coverage.report]
 exclude_lines = [
