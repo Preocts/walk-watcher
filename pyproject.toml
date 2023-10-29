@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "walk-watcher"
-version = "0.8.0"
+version = "0.9.0"
 requires-python = ">=3.8"
 description = "Watches directories and files."
 readme = "README.md"
